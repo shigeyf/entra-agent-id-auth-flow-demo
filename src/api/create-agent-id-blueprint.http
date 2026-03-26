@@ -1,0 +1,174 @@
+# API worksheet - Microsoft Entra Agent Identity Blueprint
+#
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-blueprint?tabs=microsoft-graph-api
+#
+# This provides API examples using Microsoft Graph API
+# for creating and managing Entra Agent Identity Blueprints
+# in Microsoft Entra ID.
+#
+
+@baseUrl = https://graph.microsoft.com/beta
+@token = {{$dotenv ACCESS_TOKEN}}
+@tenantId = {{$dotenv TENANT_ID}}
+@myId = {{$dotenv MY_ID}}
+@displayName = {{$dotenv AGENT_ID_BP_NAME}}
+
+
+### Create an agent blueprint
+# @name createAgentIdentityBlueprint
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-blueprint?tabs=microsoft-graph-api#create-an-agent-identity-blueprint-1
+POST {{baseUrl}}/applications/
+OData-Version: 4.0
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "@odata.type": "Microsoft.Graph.AgentIdentityBlueprint",
+  "displayName": "{{displayName}}",
+  "sponsors@odata.bind": [
+    "https://graph.microsoft.com/v1.0/users/{{myId}}"
+  ],
+  "owners@odata.bind": [
+    "https://graph.microsoft.com/v1.0/users/{{myId}}"
+  ]
+}
+
+
+### Query an agent blueprint
+# @name getAgentIdentityBlueprint
+GET {{baseUrl}}/applications/microsoft.graph.agentIdentityBlueprint?$filter=displayName eq '{{displayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Get a created agent blueprint
+# @name createdAgentIdentityBlueprint
+GET {{baseUrl}}/applications/microsoft.graph.agentIdentityBlueprint/{{getAgentIdentityBlueprint.response.body.value.[0].id}}
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Add inheritable permissions to an agent blueprint
+POST {{baseUrl}}/applications/microsoft.graph.agentIdentityBlueprint/{{createdAgentIdentityBlueprint.response.body.id}}/inheritablePermissions
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+{
+  "resourceAppId": "00000003-0000-0ff1-ce00-000000000000",
+  "inheritableScopes": {
+    "@odata.type": "microsoft.graph.enumeratedScopes",
+    "scopes": [
+      "User.Read",
+      "Mail.Read"
+    ]
+  }
+}
+
+
+### Configure credentials (Managed Identity) for the agent identity blueprint
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-blueprint?tabs=microsoft-graph-api#configure-credentials-for-the-agent-identity-blueprint
+POST {{baseUrl}}/applications/{{createdAgentIdentityBlueprint.response.body.id}}/federatedIdentityCredentials
+OData-Version: 4.0
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "my-agent-identity-blueprint-managed-identity",
+    "issuer": "https://login.microsoftonline.com/{{tenantId}}/v2.0",
+    "subject": "{{createdAgentIdentityBlueprint.response.body.appId}}",
+    "audiences": [
+        "api://AzureADTokenExchange"
+    ]
+}
+
+
+### Configure credentials (App Secret) for the agent identity blueprint
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-blueprint?tabs=microsoft-graph-api#other-app-credentials
+# NOTE 1: App secrets are not recommended for production use, and should only be used for testing purposes.
+# NOTE 2: Please set App Secret to AGENT_ID_BP_SECRET in .env file before running create-agent-id.http.
+POST {{baseUrl}}/applications/{{createdAgentIdentityBlueprint.response.body.id}}/addPassword
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "passwordCredential": {
+    "displayName": "{{displayName}} Secret",
+    "endDateTime": "{{$datetime iso8601 1 M}}"
+  }
+}
+
+
+### Configure identifier URI and scope
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-blueprint?tabs=microsoft-graph-api#configure-identifier-uri-and-scope
+PATCH {{baseUrl}}/applications/{{createdAgentIdentityBlueprint.response.body.id}}
+OData-Version: 4.0
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "identifierUris": ["api://{{createdAgentIdentityBlueprint.response.body.id}}"],
+    "api": {
+      "oauth2PermissionScopes": [
+        {
+          "adminConsentDescription": "Allow the application to access the agent on behalf of the signed-in user.",
+          "adminConsentDisplayName": "Access agent",
+          "id": "{{$guid}}",
+          "isEnabled": true,
+          "type": "User",
+          "value": "access_agent"
+        }
+      ]
+  }
+}
+
+
+### Create an agent blueprint principal
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-blueprint?tabs=microsoft-graph-api#create-an-agent-blueprint-principal
+POST {{baseUrl}}/serviceprincipals/graph.agentIdentityBlueprintPrincipal
+OData-Version: 4.0
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "appId": "{{createdAgentIdentityBlueprint.response.body.appId}}"
+}
+
+
+
+
+
+################################################################################
+# Cleanup - Delete the created Agent Identity Blueprint
+################################################################################
+
+### List agent blueprints
+GET {{baseUrl}}/applications/microsoft.graph.agentIdentityBlueprint
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+### Query an agent blueprint
+# @name getAgentIdentityBlueprint
+GET {{baseUrl}}/applications/microsoft.graph.agentIdentityBlueprint?$filter=displayName eq '{{displayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Get a created agent blueprint
+# @name createdAgentIdentityBlueprint
+GET {{baseUrl}}/applications/microsoft.graph.agentIdentityBlueprint/{{getAgentIdentityBlueprint.response.body.value.[0].id}}
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Delete an agent blueprint
+# @name deleteAgentIdentityBlueprint
+DELETE {{baseUrl}}/applications/microsoft.graph.agentIdentityBlueprint/{{createdAgentIdentityBlueprint.response.body.id}}
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}

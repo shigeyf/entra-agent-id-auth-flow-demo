@@ -1,0 +1,59 @@
+# API worksheet - Get OAuth2 tokens for Microsoft Entra Agent Identity (Autonomous Agent)
+#
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/autonomous-agent-request-tokens?tabs=Microsoft-graph-api
+#
+
+@baseUrl = https://graph.microsoft.com/beta
+@token = {{$dotenv ACCESS_TOKEN}}
+@tenantId = {{$dotenv TENANT_ID}}
+@blueprintSecret = {{$dotenv AGENT_ID_BP_SECRET}}
+@myId = {{$dotenv MY_ID}}
+@blueprintDisplayName = {{$dotenv AGENT_ID_BP_NAME}}
+@agentDisplayName = {{$dotenv AGENT_ID_NAME}}
+
+
+### Query an agent identity blueprint
+# @name getAgentIdentityBlueprint
+GET {{baseUrl}}/applications/microsoft.graph.agentIdentityBlueprint?$filter=displayName eq '{{blueprintDisplayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Query an agent identity
+# @name getAgentIdentity
+GET {{baseUrl}}/serviceprincipals/Microsoft.Graph.AgentIdentity?$filter=displayName eq '{{agentDisplayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+# Get an access token for Agent Identity (2-step token exchange)
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/autonomous-agent-request-tokens?tabs=Microsoft-graph-api
+#
+### Step 1: Request a token for the agent identity blueprint (T1)
+# scope must be api://AzureADTokenExchange/.default (NOT graph.microsoft.com)
+# fmi_path must be the agent identity's client ID
+# @name getBlueprintFicToken
+POST https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{getAgentIdentityBlueprint.response.body.value.[0].id}}
+&scope=api://AzureADTokenExchange/.default
+&grant_type=client_credentials
+&client_secret={{blueprintSecret}}
+&fmi_path={{getAgentIdentity.response.body.value.[0].id}}
+
+
+### Step 2: Exchange blueprint token (T1) for agent identity token
+# This example is to acquire a token for Microsoft Graph,
+# but the scope can be changed to acquire tokens for other resources.
+# @name getAgentIdentityToken
+POST https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{getAgentIdentity.response.body.value.[0].id}}
+&scope=https://graph.microsoft.com/.default
+&grant_type=client_credentials
+&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+&client_assertion={{getBlueprintFicToken.response.body.access_token}}

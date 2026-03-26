@@ -1,0 +1,122 @@
+#
+# API worksheet - Get tokens for Agent Identity
+#
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-delete-agent-identities?tabs=microsoft-graph-api
+#
+# This provides API examples using Microsoft Graph API
+# for creating and managing Entra Agent Identities
+# in Microsoft Entra ID.
+#
+
+@baseUrl = https://graph.microsoft.com/beta
+@token = {{$dotenv ACCESS_TOKEN}}
+@tenantId = {{$dotenv TENANT_ID}}
+@blueprintSecret = {{$dotenv AGENT_ID_BP_SECRET}}
+@myId = {{$dotenv MY_ID}}
+@blueprintDisplayName = {{$dotenv AGENT_ID_BP_NAME}}
+@agentDisplayName = {{$dotenv AGENT_ID_NAME}}
+
+
+### Query an agent blueprint
+# @name getAgentIdentityBlueprint
+GET {{baseUrl}}/applications/microsoft.graph.agentIdentityBlueprint?$filter=displayName eq '{{blueprintDisplayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+
+### Get an access token using agent identity blueprint
+
+# [Option 1] Client Secret - Local Development
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-delete-agent-identities?tabs=microsoft-graph-api#get-an-access-token-using-agent-identity-blueprint
+#
+### Step 1 & 2: Get an access token
+# Use client_secret instead of managed identity when testing locally.
+# Requires: AGENT_ID_BP_APP_ID (appId of the blueprint) and AGENT_ID_BP_SECRET (secret from addPassword)
+# @name getBlueprintToken
+POST https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{getAgentIdentityBlueprint.response.body.value.[0].appId}}
+&scope=https://graph.microsoft.com/.default
+&client_secret={{blueprintSecret}}
+&grant_type=client_credentials
+
+
+# [Option 2] Managed Identity - Azure
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-delete-agent-identities?tabs=microsoft-graph-api#get-an-access-token-using-agent-identity-blueprint
+#
+### Step 1: Get MSI token (only works on Azure compute with managed identity assigned)
+# @name getMsiToken
+GET http://169.254.169.254/metadata/identity/oauth2/token?api-version=2019-08-01&resource=api://AzureADTokenExchange/.default
+Metadata: True
+
+### Step 2: Exchange MSI token for access token
+# TODO: replace <msi-token>
+# @name getBlueprintToken
+POST https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{getAgentIdentityBlueprint.response.body.value.[0].appId}}
+&scope=https://graph.microsoft.com/.default
+&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+&client_assertion=<msi-token>
+&grant_type=client_credentials
+
+
+
+### Create an Agent Identity
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-delete-agent-identities?tabs=microsoft-graph-api#create-an-agent-identity
+# NOTE: Use the Blueprint token (from getBlueprintToken), NOT the user delegated token.
+# @name createAgentIdentity
+POST {{baseUrl}}/serviceprincipals/Microsoft.Graph.AgentIdentity
+OData-Version: 4.0
+Content-Type: application/json
+Authorization: Bearer {{getBlueprintToken.response.body.access_token}}
+
+{
+    "displayName": "{{agentDisplayName}}",
+    "agentIdentityBlueprintId": "{{getAgentIdentityBlueprint.response.body.value.[0].id}}",
+    "sponsors@odata.bind": [
+        "https://graph.microsoft.com/v1.0/users/{{myId}}"
+    ],
+}
+
+
+
+
+
+################################################################################
+# Cleanup - Delete the created Agent Identity
+################################################################################
+
+### List an agent identity
+# @name listAgentIdentity
+GET {{baseUrl}}/serviceprincipals/Microsoft.Graph.AgentIdentity
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Query an agent identity
+# @name getAgentIdentity
+GET {{baseUrl}}/serviceprincipals/Microsoft.Graph.AgentIdentity?$filter=displayName eq '{{agentDisplayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Get a target agent identity
+# @name createdAgentIdentity
+GET {{baseUrl}}/serviceprincipals/Microsoft.Graph.AgentIdentity/{{getAgentIdentity.response.body.value.[0].id}}
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Delete a target agent identity
+DELETE {{baseUrl}}/serviceprincipals/Microsoft.Graph.AgentIdentity/{{createdAgentIdentity.response.body.id}}
+OData-Version: 4.0
+Content-Type: application/json
+Authorization: Bearer {{getBlueprintToken.response.body.access_token}}

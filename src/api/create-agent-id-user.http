@@ -1,0 +1,183 @@
+#
+# API worksheet - Get tokens for Agent Identity User
+#
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/autonomous-agent-request-agent-user-tokens?tabs=rest
+#
+# This provides API examples using Microsoft Graph API
+# for creating and managing Entra Agent Identity Users
+# in Microsoft Entra ID.
+#
+
+@baseUrl = https://graph.microsoft.com/beta
+@token = {{$dotenv ACCESS_TOKEN}}
+@tenantId = {{$dotenv TENANT_ID}}
+@tenantName = {{$dotenv TENANT_NAME}}
+@blueprintSecret = {{$dotenv AGENT_ID_BP_SECRET}}
+@blueprintDisplayName = {{$dotenv AGENT_ID_BP_NAME}}
+@agentDisplayName = {{$dotenv AGENT_ID_NAME}}
+@agentUserDisplayName = {{$dotenv AGENT_ID_USER_NAME}}
+@agentUserPrincipalName = {{$dotenv AGENT_ID_USER_UPN}}
+
+
+### Query an agent blueprint
+# @name getAgentIdentityBlueprint
+GET {{baseUrl}}/applications/microsoft.graph.agentIdentityBlueprint?$filter=displayName eq '{{blueprintDisplayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Query an agent identity
+# @name getAgentIdentity
+GET {{baseUrl}}/serviceprincipals/Microsoft.Graph.AgentIdentity?$filter=displayName eq '{{agentDisplayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Query the blueprint principal (service principal of the blueprint)
+# @name getBlueprintPrincipal
+GET {{baseUrl}}/serviceprincipals?$filter=appId eq '{{getAgentIdentityBlueprint.response.body.value.[0].appId}}'
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+### Grant AgentIdUser.ReadWrite.IdentityParentedBy to the blueprint principal
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/autonomous-agent-request-agent-user-tokens?tabs=rest#get-authorization
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/autonomous-agent-request-authorization-entra-admin#create-an-app-role-assignment-via-apis
+# NOTE: principalId must be the blueprint PRINCIPAL (service principal) object ID, NOT the blueprint application ID.
+# NOTE: Run `python get-approle-id.py` to save the following to .env:
+#       - MS_GRAPH_SP_ID (Microsoft Graph service principal object ID, per-tenant)
+#       - AGENT_ID_USER_APP_ROLE_ID (appRoleId for AgentIdUser.ReadWrite.IdentityParentedBy)
+@msGraphSpId = {{$dotenv MS_GRAPH_SP_ID}}
+@appRoleId = {{$dotenv AGENT_ID_USER_APP_ROLE_ID}}
+POST https://graph.microsoft.com/v1.0/servicePrincipals/{{getBlueprintPrincipal.response.body.value.[0].id}}/appRoleAssignments
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "principalId": "{{getBlueprintPrincipal.response.body.value.[0].id}}",
+  "resourceId": "{{msGraphSpId}}",
+  "appRoleId": "{{appRoleId}}"
+}
+
+
+### Get an access token using agent identity blueprint
+
+# [Option 1] Client Secret - Local Development
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-delete-agent-identities?tabs=microsoft-graph-api#get-an-access-token-using-agent-identity-blueprint
+#
+### Step 1 & 2: Get an access token
+# Use client_secret instead of managed identity when testing locally.
+# Requires: AGENT_ID_BP_APP_ID (appId of the blueprint) and AGENT_ID_BP_SECRET (secret from addPassword)
+# @name getBlueprintToken
+POST https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{getAgentIdentityBlueprint.response.body.value.[0].appId}}
+&scope=https://graph.microsoft.com/.default
+&client_secret={{blueprintSecret}}
+&grant_type=client_credentials
+
+
+# [Option 2] Managed Identity - Azure
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-delete-agent-identities?tabs=microsoft-graph-api#get-an-access-token-using-agent-identity-blueprint
+#
+### Step 1: Get MSI token (only works on Azure compute with managed identity assigned)
+# @name getMsiToken
+GET http://169.254.169.254/metadata/identity/oauth2/token?api-version=2019-08-01&resource=api://AzureADTokenExchange/.default
+Metadata: True
+
+### Step 2: Exchange MSI token for access token
+# TODO: replace <msi-token>
+# @name getBlueprintToken
+POST https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{getAgentIdentityBlueprint.response.body.value.[0].appId}}
+&scope=https://graph.microsoft.com/.default
+&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+&client_assertion=<msi-token>
+&grant_type=client_credentials
+
+
+### Create an agent user
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/autonomous-agent-request-agent-user-tokens?tabs=rest#create-an-agent-user
+POST {{baseUrl}}/users
+OData-Version: 4.0
+Content-Type: application/json
+Authorization: Bearer {{getBlueprintToken.response.body.access_token}}
+
+{
+  "@odata.type": "microsoft.graph.agentUser",
+  "displayName": "{{agentUserDisplayName}}",
+  "userPrincipalName": "{{agentUserPrincipalName}}@{{tenantName}}",
+  "identityParentId": "{{getAgentIdentity.response.body.value.[0].id}}",
+  "mailNickname": "{{agentUserPrincipalName}}",
+  "accountEnabled": true
+}
+
+
+### Query an agent user
+# @name getAgentUser
+GET {{baseUrl}}/users?$filter=displayName eq '{{agentUserDisplayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Grant consent to agent identity (oAuth2PermissionGrant)
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/autonomous-agent-request-agent-user-tokens?tabs=rest#grant-consent-to-agent-identity
+# This grants the agent identity delegated permission to act on behalf of the agent user.
+# NOTE: Must be done BEFORE requesting agent user tokens (Step 3).
+# NOTE: Adjust "scope" to match the permissions your agent needs (e.g., "Mail.Read", "User.Read").
+@oauth2PermissionGrants = {{$dotenv AGENT_ID_USER_OAUTH2_PERMISSION_GRANTS}}
+POST https://graph.microsoft.com/v1.0/oauth2PermissionGrants
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "clientId": "{{getAgentIdentity.response.body.value.[0].id}}",
+  "consentType": "Principal",
+  "principalId": "{{getAgentUser.response.body.value.[0].id}}",
+  "resourceId": "{{msGraphSpId}}",
+  "scope": "{{oauth2PermissionGrants}}"
+}
+
+
+
+
+
+################################################################################
+# Cleanup - Delete the created Agent User
+################################################################################
+
+### List an agent user
+# @name listAgentUser
+GET {{baseUrl}}/users
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Query an agent user
+# @name getAgentUser
+GET {{baseUrl}}/users?$filter=displayName eq '{{agentUserDisplayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Get a target agent user
+# @name createdAgentUser
+GET {{baseUrl}}/users/{{getAgentUser.response.body.value.[0].id}}
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Delete an agent user
+# @name deleteAgentUser
+DELETE {{baseUrl}}/users/{{getAgentUser.response.body.value.[0].id}}
+OData-Version: 4.0
+Content-Type: application/json
+Authorization: Bearer {{getBlueprintToken.response.body.access_token}}

@@ -1,0 +1,83 @@
+# API worksheet - Get OAuth2 tokens for Microsoft Entra Agent Identity User (Autonomous Agent)
+#
+# https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/autonomous-agent-request-agent-user-tokens?tabs=rest#request-agent-user-token
+#
+
+@baseUrl = https://graph.microsoft.com/beta
+@token = {{$dotenv ACCESS_TOKEN}}
+@tenantId = {{$dotenv TENANT_ID}}
+@blueprintSecret = {{$dotenv AGENT_ID_BP_SECRET}}
+@blueprintDisplayName = {{$dotenv AGENT_ID_BP_NAME}}
+@agentDisplayName = {{$dotenv AGENT_ID_NAME}}
+@agentUserDisplayName = {{$dotenv AGENT_ID_USER_NAME}}
+@agentUserPrincipalName = {{$dotenv AGENT_ID_USER_UPN}}
+
+
+### Query an agent identity blueprint
+# @name getAgentIdentityBlueprint
+GET {{baseUrl}}/applications/microsoft.graph.agentIdentityBlueprint?$filter=displayName eq '{{blueprintDisplayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Query an agent identity
+# @name getAgentIdentity
+GET {{baseUrl}}/serviceprincipals/Microsoft.Graph.AgentIdentity?$filter=displayName eq '{{agentDisplayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+### Query an agent user
+# @name getAgentUser
+GET {{baseUrl}}/users?$filter=displayName eq '{{agentUserDisplayName}}'
+Content-Type: application/json
+OData-Version: 4.0
+Authorization: Bearer {{token}}
+
+
+
+################################################################################
+# Request an access token for the agent user
+################################################################################
+
+# Request an access token for Agent User (2-step token exchange)
+### Step 1: Request a token for the agent identity blueprint (T1)
+# scope must be api://AzureADTokenExchange/.default (NOT graph.microsoft.com)
+# fmi_path must be the agent identity's client ID
+# @name getBlueprintFicToken
+POST https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{getAgentIdentityBlueprint.response.body.value.[0].id}}
+&scope=api://AzureADTokenExchange/.default
+&grant_type=client_credentials
+&client_secret={{blueprintSecret}}
+&fmi_path={{getAgentIdentity.response.body.value.[0].id}}
+
+### Step 2: Exchange blueprint token (T1) for agent identity token (T2)
+# @name getAgentIdentityToken
+POST https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{getAgentIdentity.response.body.value.[0].id}}
+&scope=api://AzureADTokenExchange/.default
+&grant_type=client_credentials
+&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+&client_assertion={{getBlueprintFicToken.response.body.access_token}}
+
+### Step 3: Acquire a agent user token (T3) with using the agent identity token (T2)
+# This example is to acquire a token for Microsoft Graph,
+# but the scope can be changed to acquire tokens for other resources.
+# @name getAgentUserToken
+POST https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{getAgentIdentity.response.body.value.[0].id}}
+&scope=https://graph.microsoft.com/.default
+&grant_type=user_fic
+&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+&client_assertion={{getBlueprintFicToken.response.body.access_token}}
+&user_id={{getAgentUser.response.body.value.[0].id}}
+&user_federated_identity_credential={{getAgentIdentityToken.response.body.access_token}}
