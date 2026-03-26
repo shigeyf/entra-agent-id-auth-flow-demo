@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "microsoft-entra-agent-id"
+version = "0.1.0"
+description = "Microsoft Entra Agent ID"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [{ name = "Microsoft Entra Agent ID Contributors" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = ["msal>=1.31.0", "requests>=2.32.0", "python-dotenv>=1.0.0"]
+
+[project.optional-dependencies]
+dev = ["poethepoet>=0.32.0", "ruff>=0.9.0"]
+
+[tool.setuptools]
+packages = []
+
+# Poe the Poet - Task Runner
+[tool.poe.tasks]
+
+# Setup (Development Environment)
+[tool.poe.tasks.setup]
+shell = "uv tool install pre-commit && pre-commit install --install-hooks"
+help = "Set up the development environment (install pre-commit via uv tool and hooks)"
+
+# Lint & Format
+[tool.poe.tasks.lint]
+cmd = "ruff check ."
+help = "Run linting with Ruff"
+
+[tool.poe.tasks.format]
+cmd = "ruff format ."
+help = "Run formatting with Ruff"
+
+[tool.poe.tasks.check]
+sequence = ["lint", "format"]
+help = "Run linting and formatting"
+
+# Test
+[tool.poe.tasks.test]
+cmd = "echo 'No tests defined yet'"
+help = "Run tests"
+
+# Clean up
+[tool.poe.tasks.clean]
+cmd = "rm -rf .venv __pycache__ .pytest_cache .ruff_cache *.egg-info"
+help = "Remove build artifacts"
+
+# Ruff - Flake8 + isort + Black All-in-One Linter and Formatter
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = [".git", ".venv", "node_modules", "infra"]
+
+[tool.ruff.lint]
+select = [
+  "E",  # pycodestyle errors
+  "W",  # pycodestyle warnings
+  "F",  # Pyflakes
+  "I",  # isort
+  "B",  # flake8-bugbear
+  "C4", # flake8-comprehensions
+  "UP", # pyupgrade
+]
+ignore = ["E203"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+exclude = ["^.git/", "^.venv/", "^node_modules/", "^infra/"]
