@@ -1,5 +1,5 @@
 {
-  "name": "Microsoft Foundry Workshop",
+  "name": "Project Root",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
 
@@ -26,6 +26,10 @@
     },
     "ghcr.io/devcontainers-extra/features/uv:1": {
       "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "version": "1.9",
+      "tflint": "latest"
     }
   },
 
@@ -36,7 +40,12 @@
         "bierner.markdown-mermaid",
         "esbenp.prettier-vscode",
         "GitHub.vscode-github-actions",
+        "hashicorp.terraform",
         "humao.rest-client",
+        "ms-azuretools.vscode-azureresourcegroups",
+        "ms-azuretools.vscode-azureterraform",
+        "ms-azuretools.vscode-azure-github-copilot",
+        "ms-azuretools.vscode-azure-mcp-server",
         "ms-python.python",
         "ms-toolsai.jupyter",
         "ms-toolsai.jupyter-keymap",
