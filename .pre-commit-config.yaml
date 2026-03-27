@@ -60,7 +60,7 @@ repos:
       - id: frontend-eslint
         name: '[Lint] ESLint (frontend *.ts,*.tsx)'
         language: system
-        entry: bash -c 'cd src/frontend && npx eslint --no-warn-ignored "$@"' --
+        entry: bash -c 'cd src/frontend && npx eslint --no-warn-ignored "${@#src/frontend/}"' --
         files: ^src/frontend/src/.*\.(ts|tsx)$
         types: [file]
 
