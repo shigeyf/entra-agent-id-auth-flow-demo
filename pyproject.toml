@@ -48,7 +48,16 @@ help = "Run linting and formatting"
 # Test
 [tool.poe.tasks.test]
 cmd = "echo 'No tests defined yet'"
-help = "Run tests"
+
+# Identity Echo API
+[tool.poe.tasks.api]
+shell = "cd src && uvicorn identity_echo_api.main:app --reload --port 8000"
+help = "Start Identity Echo API dev server on port 8000"
+
+# Frontend SPA
+[tool.poe.tasks.frontend]
+shell = "cd src/frontend && npm run dev"
+help = "Start Frontend SPA dev server (Vite)"
 
 # Clean up
 [tool.poe.tasks.clean]

@@ -1,0 +1,9 @@
+# tenant_id は必須（既定値なし）
+tenant_id = "your-tenant-id"
+
+# 以下はすべてオプション（既定値あり）
+# resource_api_display_name          = "demo-identity-echo-api"
+# resource_api_delegated_scope_name  = "CallerIdentity.Read"
+# resource_api_app_role_name         = "CallerIdentity.Read.All"
+# client_app_display_name            = "demo-client-app"
+# client_app_redirect_uris           = ["http://localhost:3000", "http://localhost:5173"]

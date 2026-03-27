@@ -1,0 +1,146 @@
+.app {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+header h1 {
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.auth-section {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.button-group {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #0078d4;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #106ebe;
+}
+
+.btn-secondary {
+  background: #e1e1e1;
+  color: #333;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #d0d0d0;
+}
+
+/* CallerInfo component */
+.caller-info {
+  margin-top: 1.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.caller-info.loading {
+  text-align: center;
+  color: #666;
+}
+
+.caller-info.error {
+  color: #d32f2f;
+  background: #ffeef0;
+  border-color: #d32f2f;
+}
+
+.caller-info h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.summary {
+  background: #f0f7ff;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.human-readable {
+  margin: 0;
+  font-weight: 500;
+}
+
+.caller-info table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.caller-info th,
+.caller-info td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.caller-info th {
+  width: 140px;
+  color: #555;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.caller-info code {
+  background: #f4f4f4;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.85rem;
+}
+
+.caller-info details {
+  margin-top: 0.5rem;
+}
+
+.caller-info details summary {
+  cursor: pointer;
+  color: #0078d4;
+  font-size: 0.9rem;
+}
+
+.caller-info pre {
+  background: #f8f8f8;
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
