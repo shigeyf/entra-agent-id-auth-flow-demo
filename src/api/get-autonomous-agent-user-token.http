@@ -50,7 +50,7 @@ Authorization: Bearer {{token}}
 POST https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/token
 Content-Type: application/x-www-form-urlencoded
 
-client_id={{getAgentIdentityBlueprint.response.body.value.[0].id}}
+client_id={{getAgentIdentityBlueprint.response.body.value.[0].appId}}
 &scope=api://AzureADTokenExchange/.default
 &grant_type=client_credentials
 &client_secret={{blueprintSecret}}
