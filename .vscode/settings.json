@@ -1,0 +1,14 @@
+{
+  "files.associations": {
+    "*.hcl": "terraform"
+  },
+  "files.exclude": {
+    "**/.terraform": true,
+    "**/.terraform.lock.hcl": false
+  },
+  "search.exclude": {
+    "**/.terraform": true
+  },
+  "terraform.languageServer.enable": true,
+  "terraform.validation.enableEnhancedValidation": true
+}
