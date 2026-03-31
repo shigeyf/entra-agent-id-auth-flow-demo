@@ -11,7 +11,7 @@ export async function getCallerInfo(accessToken: string) {
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(
-      `API request failed: ${response.status} ${response.statusText} - ${errorText}`
+      `API request failed: ${response.status} ${response.statusText} - ${errorText}`,
     );
   }
 
