@@ -29,9 +29,9 @@ def try_t1_token_acquisition() -> str:
     """
     from azure.identity import DefaultAzureCredential
 
-    TENANT_ID = os.getenv("AZURE_TENANT_ID", os.getenv("TENANT_ID", ""))
-    BLUEPRINT_CLIENT_ID = "f7374d71-8597-4602-bf03-1c94bfdb59f3"
-    AGENT_IDENTITY_CLIENT_ID = "df22d1b3-0137-4406-9f61-833ff515ad59"
+    TENANT_ID = os.getenv("ENTRA_TENANT_ID", "")
+    BLUEPRINT_CLIENT_ID = os.getenv("ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID", "")
+    AGENT_IDENTITY_CLIENT_ID = os.getenv("ENTRA_AGENT_IDENTITY_CLIENT_ID", "")
 
     result = {
         "step1_mi_token": {},

@@ -115,8 +115,8 @@ help = "Invoke the deployed Hosted Agent (append message as argument, e.g. poe i
 shell = """
 set -e
 cd src/agent
-ACR_LOGIN_SERVER=$(grep '^ACR_LOGIN_SERVER=' .env | cut -d= -f2)
-AGENT_NAME=$(grep '^AGENT_NAME=' .env | cut -d= -f2)
+ACR_LOGIN_SERVER=$(grep '^FOUNDRY_AGENT_ACR_LOGIN_SERVER=' ../.env | cut -d= -f2)
+AGENT_NAME=$(grep '^FOUNDRY_AGENT_NAME=' ../.env | cut -d= -f2)
 IMAGE="${ACR_LOGIN_SERVER}/${AGENT_NAME}:latest"
 echo "Building ${IMAGE} ..."
 docker build --platform linux/amd64 -t "${IMAGE}" -f runtime/Dockerfile runtime/
@@ -128,8 +128,8 @@ help = "Build Hosted Agent Docker image (linux/amd64)"
 shell = """
 set -e
 cd src/agent
-ACR_LOGIN_SERVER=$(grep '^ACR_LOGIN_SERVER=' .env | cut -d= -f2)
-AGENT_NAME=$(grep '^AGENT_NAME=' .env | cut -d= -f2)
+ACR_LOGIN_SERVER=$(grep '^FOUNDRY_AGENT_ACR_LOGIN_SERVER=' ../.env | cut -d= -f2)
+AGENT_NAME=$(grep '^FOUNDRY_AGENT_NAME=' ../.env | cut -d= -f2)
 IMAGE="${ACR_LOGIN_SERVER}/${AGENT_NAME}:latest"
 echo "Logging in to ${ACR_LOGIN_SERVER} ..."
 az acr login --name "${ACR_LOGIN_SERVER%%.*}"

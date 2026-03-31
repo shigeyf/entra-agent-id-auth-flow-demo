@@ -17,9 +17,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load .env from the agent directory (parent of deploy/)
+# Load .env from src/ (parent of agent/)
 _AGENT_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(_AGENT_DIR / ".env")
+load_dotenv(_AGENT_DIR.parent / ".env")
 
 
 def _require_env(key: str) -> str:
@@ -50,27 +50,27 @@ def _parse_project_endpoint(endpoint: str) -> tuple[str, str]:
 
 
 # ---------- Environment-driven configuration ----------
-PROJECT_ENDPOINT = _require_env("PROJECT_ENDPOINT")
+PROJECT_ENDPOINT = _require_env("FOUNDRY_PROJECT_ENDPOINT")
 ACCOUNT_NAME, PROJECT_NAME = _parse_project_endpoint(PROJECT_ENDPOINT)
 
-ACR_LOGIN_SERVER = _require_env("ACR_LOGIN_SERVER")
-AGENT_NAME = _require_env("AGENT_NAME")
-CPU = os.getenv("AGENT_CPU", "1")
-MEMORY = os.getenv("AGENT_MEMORY", "2Gi")
+ACR_LOGIN_SERVER = _require_env("FOUNDRY_AGENT_ACR_LOGIN_SERVER")
+AGENT_NAME = _require_env("FOUNDRY_AGENT_NAME")
+CPU = os.getenv("FOUNDRY_AGENT_HOST_CPU", "1")
+MEMORY = os.getenv("FOUNDRY_AGENT_HOST_MEMORY", "2Gi")
 IMAGE = f"{ACR_LOGIN_SERVER}/{AGENT_NAME}:latest"
 
 # Environment variables to pass into the Hosted Agent container.
 # Keys that match .env entries are forwarded; empty values are included
-# so they can be set later (e.g. BLUEPRINT_CLIENT_ID for Step B).
+# so they can be set later (e.g. ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID for Step B).
 _ENV_KEYS = [
-    "PROJECT_ENDPOINT",
-    "MODEL_DEPLOYMENT_NAME",
-    "TENANT_ID",
-    "BLUEPRINT_CLIENT_ID",
-    "AGENT_IDENTITY_OID",
+    "FOUNDRY_PROJECT_ENDPOINT",
+    "FOUNDRY_MODEL_DEPLOYMENT_NAME",
+    "ENTRA_TENANT_ID",
+    "ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID",
+    "ENTRA_AGENT_IDENTITY_OID",
     "RESOURCE_API_URL",
-    "RESOURCE_API_SCOPE",
-    "RESOURCE_API_DEFAULT_SCOPE",
+    "ENTRA_RESOURCE_API_SCOPE",
+    "ENTRA_RESOURCE_API_DEFAULT_SCOPE",
 ]
 CONTAINER_ENV_VARS = {k: os.getenv(k, "") for k in _ENV_KEYS}
 
@@ -142,7 +142,7 @@ def start_agent(version: int) -> None:
         AGENT_NAME,
         "--agent-version",
         str(version),
-        "--show-logs",
+        # "--show-logs",
     ]
     print(f"Starting deployment: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True)

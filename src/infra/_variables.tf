@@ -37,7 +37,7 @@ variable "target_subscription_id" {
 variable "naming_suffix" {
   description = "Naming suffix for the deployed resources"
   type        = list(string)
-  default     = ["foundry", "aipoc"]
+  default     = ["foundry", "poc"]
 }
 
 variable "env" {
@@ -57,7 +57,7 @@ variable "tags" {
   default = {
     env     = "dev"
     project = "foundry"
-    purpose = "aipoc"
+    purpose = "poc"
   }
 }
 

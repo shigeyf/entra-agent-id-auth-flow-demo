@@ -25,9 +25,9 @@ from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from dotenv import load_dotenv
 
-# Load config from src/agent/.env (parent of client/ = src/agent/)
+# Load config from src/.env (parent of agent/ = src/)
 _AGENT_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(_AGENT_DIR / ".env")
+load_dotenv(_AGENT_DIR.parent / ".env")
 
 
 def _to_services_endpoint(endpoint: str) -> str:
@@ -44,8 +44,8 @@ def _to_services_endpoint(endpoint: str) -> str:
 
 
 def invoke(message: str) -> None:
-    project_endpoint = os.environ["PROJECT_ENDPOINT"]
-    agent_name = os.getenv("AGENT_NAME", "demo-entra-agent-id")
+    project_endpoint = os.environ["FOUNDRY_PROJECT_ENDPOINT"]
+    agent_name = os.getenv("FOUNDRY_AGENT_NAME", "demo-entra-agent-id")
 
     # Convert to services.ai.azure.com domain
     services_endpoint = _to_services_endpoint(project_endpoint)

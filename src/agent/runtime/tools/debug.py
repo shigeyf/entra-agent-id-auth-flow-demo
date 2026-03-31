@@ -30,16 +30,20 @@ def check_agent_environment() -> str:
 
     # Collect user-defined + notable env vars
     env_vars = {
-        "PROJECT_ENDPOINT": os.getenv("PROJECT_ENDPOINT", "NOT SET"),
-        "MODEL_DEPLOYMENT_NAME": os.getenv("MODEL_DEPLOYMENT_NAME", "NOT SET"),
-        "BLUEPRINT_CLIENT_ID": os.getenv("BLUEPRINT_CLIENT_ID", "NOT SET"),
-        "AGENT_IDENTITY_OID": os.getenv("AGENT_IDENTITY_OID", "NOT SET"),
-        "RESOURCE_API_URL": os.getenv("RESOURCE_API_URL", "NOT SET"),
-        "RESOURCE_API_SCOPE": os.getenv("RESOURCE_API_SCOPE", "NOT SET"),
-        "RESOURCE_API_DEFAULT_SCOPE": os.getenv(
-            "RESOURCE_API_DEFAULT_SCOPE", "NOT SET"
+        "FOUNDRY_PROJECT_ENDPOINT": os.getenv("FOUNDRY_PROJECT_ENDPOINT", "NOT SET"),
+        "FOUNDRY_MODEL_DEPLOYMENT_NAME": os.getenv(
+            "FOUNDRY_MODEL_DEPLOYMENT_NAME", "NOT SET"
         ),
-        "TENANT_ID": os.getenv("TENANT_ID", "NOT SET"),
+        "ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID": os.getenv(
+            "ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID", "NOT SET"
+        ),
+        "ENTRA_AGENT_IDENTITY_OID": os.getenv("ENTRA_AGENT_IDENTITY_OID", "NOT SET"),
+        "RESOURCE_API_URL": os.getenv("RESOURCE_API_URL", "NOT SET"),
+        "ENTRA_RESOURCE_API_SCOPE": os.getenv("ENTRA_RESOURCE_API_SCOPE", "NOT SET"),
+        "ENTRA_RESOURCE_API_DEFAULT_SCOPE": os.getenv(
+            "ENTRA_RESOURCE_API_DEFAULT_SCOPE", "NOT SET"
+        ),
+        "ENTRA_TENANT_ID": os.getenv("ENTRA_TENANT_ID", "NOT SET"),
     }
 
     # Dump ALL environment variables (filter out obvious noise)

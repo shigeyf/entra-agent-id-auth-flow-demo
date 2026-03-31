@@ -8,20 +8,20 @@ Foundry: The container CMD invokes this file directly.
 import os
 import sys
 import traceback
+from pathlib import Path
 
 print("[BOOT] main.py starting", flush=True)
 print(f"[BOOT] Python {sys.version}", flush=True)
 print(f"[BOOT] cwd={os.getcwd()}", flush=True)
-print(f"[BOOT] PROJECT_ENDPOINT={os.getenv('PROJECT_ENDPOINT', 'NOT_SET')}", flush=True)
-print(
-    f"[BOOT] MODEL_DEPLOYMENT_NAME={os.getenv('MODEL_DEPLOYMENT_NAME', 'NOT_SET')}",
-    flush=True,
-)
+ep = os.getenv("FOUNDRY_PROJECT_ENDPOINT", "NOT_SET")
+print(f"[BOOT] FOUNDRY_PROJECT_ENDPOINT={ep}", flush=True)
+dn = os.getenv("FOUNDRY_MODEL_DEPLOYMENT_NAME", "NOT_SET")
+print(f"[BOOT] FOUNDRY_MODEL_DEPLOYMENT_NAME={dn}", flush=True)
 
 try:
     from dotenv import load_dotenv
 
-    load_dotenv()
+    load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
     print("[BOOT] dotenv loaded", flush=True)
 
     from agent_framework import Agent  # noqa: E402
@@ -47,8 +47,8 @@ try:
 
     print("[BOOT] Creating AzureAIAgentClient...", flush=True)
     _client = AzureAIAgentClient(
-        project_endpoint=os.getenv("PROJECT_ENDPOINT", ""),
-        model_deployment_name=os.getenv("MODEL_DEPLOYMENT_NAME", "gpt-4.1"),
+        project_endpoint=os.getenv("FOUNDRY_PROJECT_ENDPOINT", ""),
+        model_deployment_name=os.getenv("FOUNDRY_MODEL_DEPLOYMENT_NAME", "gpt-4.1"),
         credential=DefaultAzureCredential(),
     )
     print("[BOOT] AzureAIAgentClient created", flush=True)

@@ -1,6 +1,15 @@
 # outputs.tf
 
 # -----------------------------------------------------------------------------
+# Tenant ID
+# -----------------------------------------------------------------------------
+
+output "tenant_id" {
+  description = "Azure Tenant ID"
+  value       = data.azurerm_client_config.current.tenant_id
+}
+
+# -----------------------------------------------------------------------------
 # Identity Echo API (Resource API)
 # -----------------------------------------------------------------------------
 
@@ -56,6 +65,14 @@ output "acr_login_server" {
 # Microsoft Foundry
 # -----------------------------------------------------------------------------
 
+# Filter inference (non-embedding) deployments from the deployment list
+locals {
+  inference_deployments = [
+    for d in var.cognitive_deployments : d
+    if !startswith(d.model, "text-embedding-")
+  ]
+}
+
 output "cognitive_account_name" {
   description = "Foundry (Cognitive Services) account name — used in az cognitiveservices agent commands"
   value       = azurerm_cognitive_account.this.name
@@ -74,6 +91,11 @@ output "cognitive_project_name" {
 output "foundry_project_endpoint" {
   description = "Foundry project endpoint — set as PROJECT_ENDPOINT in agent .env"
   value       = "${azurerm_cognitive_account.this.endpoint}api/projects/${azurerm_cognitive_account_project.this.name}"
+}
+
+output "foundry_model_deployment_name" {
+  description = "First inference (non-embedding) model deployment name — set as FOUNDRY_MODEL_DEPLOYMENT_NAME in .env"
+  value       = length(local.inference_deployments) > 0 ? local.inference_deployments[0].name : ""
 }
 
 output "foundry_project_principal_id" {

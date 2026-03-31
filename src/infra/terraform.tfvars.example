@@ -1,9 +1,48 @@
-# tenant_id は必須（既定値なし）
+# terraform.tfvars.example
+
+# Tenant ID (Required)
 tenant_id = "your-tenant-id"
 
-# 以下はすべてオプション（既定値あり）
+# Azure Subscription ID (Required)
+target_subscription_id = "your-subscription-id"
+
+# ==================================================
+# Entra ID Application Resources
+# ==================================================
+
+# Optional parameters for Entra ID application resources.
+# If not provided, default values will be used.
 # resource_api_display_name          = "demo-identity-echo-api"
 # resource_api_delegated_scope_name  = "CallerIdentity.Read"
 # resource_api_app_role_name         = "CallerIdentity.Read.All"
 # client_app_display_name            = "demo-client-app"
 # client_app_redirect_uris           = ["http://localhost:3000", "http://localhost:5173"]
+
+
+# ==================================================
+# Foundry Resources
+# ==================================================
+
+location = "eastus2"
+
+
+# Optional parameters for Foundry resources.
+# naming_suffix                    = ["foundry", "poc"]
+# env                              = "dev"
+# ai_project_developers_group_name = "AI PoC Project Developers"
+# ai_project_users_group_name      = "AI PoC Project Users"
+# is_production                    = false
+# cognitive_project_name           = "Microsoft Foundry Workshop Project"
+# cognitive_project_description    = "Microsoft Foundry Workshop Project"
+# enable_cognitive_local_auth      = false
+
+cognitive_deployments = [
+  {
+    name     = "gpt-4.1"
+    model    = "gpt-4.1"
+    version  = "2025-04-14"
+    format   = "OpenAI"
+    sku      = "GlobalStandard"
+    capacity = 100
+  },
+]
