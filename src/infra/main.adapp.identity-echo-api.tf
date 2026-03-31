@@ -37,6 +37,10 @@ resource "azuread_application" "resource_api" {
     allowed_member_types = ["Application"]
     enabled              = true
   }
+
+  lifecycle {
+    ignore_changes = [identifier_uris]
+  }
 }
 
 # App ID URI: api://<application_id>
