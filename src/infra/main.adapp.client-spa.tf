@@ -1,4 +1,4 @@
-// main.adapp.client-spa.tf
+# main.adapp.client-spa.tf
 
 resource "azuread_application" "client_spa" {
   display_name = var.client_app_display_name

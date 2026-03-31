@@ -1,4 +1,4 @@
-// _variables.adapp.client-spa.tf
+# _variables.adapp.client-spa.tf
 
 variable "client_app_display_name" {
   description = "Display name for the SPA client App Registration"

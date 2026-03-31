@@ -1,4 +1,4 @@
-// _variables.adapp.identity-echo-api.tf
+# _variables.adapp.identity-echo-api.tf
 
 variable "resource_api_display_name" {
   description = "Display name for the Identity Echo API App Registration"

@@ -1,4 +1,4 @@
-// main.adapp.identity-echo-api.tf
+# main.adapp.identity-echo-api.tf
 
 # Stable UUIDs for scope / role (generated once, deterministic)
 resource "random_uuid" "delegated_scope_id" {}
