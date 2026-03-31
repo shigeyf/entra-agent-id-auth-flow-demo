@@ -257,6 +257,33 @@ sequenceDiagram
 4. **Backend API は Autonomous の「システム ID」として機能**
    Backend API の Managed Identity は Foundry プロジェクトの「AI Developer」または「Cognitive Services User」ロールが必要。このシステム ID 自体が Entra の認証エンティティとなる点がデモの Autonomous 側のメッセージとなる。
 
+5. **Hosted Agent の呼び出し方法（実証済み）**
+   Hosted Agent の呼び出しには OpenAI SDK の Responses API を使用し、`extra_body` で `agent_reference` を指定する。エンドポイントは `services.ai.azure.com` ドメインを使用する必要がある（`cognitiveservices.azure.com` ではない）。
+
+   ```python
+   from azure.identity import DefaultAzureCredential
+   from azure.ai.projects import AIProjectClient
+
+   # services.ai.azure.com ドメインを使用（cognitiveservices.azure.com ではない）
+   project = AIProjectClient(
+       endpoint="https://{account}.services.ai.azure.com/api/projects/{project}",
+       credential=DefaultAzureCredential(),
+       allow_preview=True,
+   )
+   openai = project.get_openai_client()
+   agent = project.agents.get(agent_name=agent_name)
+
+   response = openai.responses.create(
+       input=[{"role": "user", "content": "..."}],
+       extra_body={
+           "agent_reference": {
+               "name": agent.name,
+               "type": "agent_reference",
+           }
+       },
+   )
+   ```
+
 ---
 
 ## 4. コンポーネント別設計
@@ -390,6 +417,72 @@ POST /api/demo/autonomous/user
 > - **公開後** → Foundry が**専用の Managed Identity**（プロジェクト MSI とは独立した dedicated identity）を自動プロビジョニング
 >
 > Function Tool コードでは `DefaultAzureCredential()` を呼び出すだけで、Foundry がプロビジョニングした MSI トークンを自動取得できる。
+
+#### 実証済み: Hosted Agent ランタイムの Identity とトークン取得メカニズム（2026-03-31 検証）
+
+Phase 2 Step A-3 の検証で、Hosted Agent コンテナ内の Identity メカニズムが以下の通り実証された。
+
+##### 2 つの Identity システム
+
+Hosted Agent コンテナ内には **2 つの異なる Identity** が存在する:
+
+| Identity           | Application ID            | Object ID                     | 取得方法                         | 役割                                                     |
+| ------------------ | ------------------------- | ----------------------------- | -------------------------------- | -------------------------------------------------------- |
+| **Project MI**     | `4577bb8c-...`            | `89ccb38c-...`                | `DefaultAzureCredential()`       | インフラ認証（ACR Pull 等）、T1 取得の credential        |
+| **Agent Identity** | Blueprint: `f7374d71-...` | Blueprint OID: `9993e7ae-...` | T1 トークンの subject として機能 | Identity Echo API へのアクセス主体（3 フローの subject） |
+
+`DefaultAzureCredential()` は **常に Project MI** のトークンを返す（環境変数 `AZURE_CLIENT_ID` 経由）。Agent Identity のトークンは直接取得できず、FIC ベースの Token Exchange（T1 取得）を経由して Agent Identity として振る舞うトークンを取得する。
+
+##### FIC（Federated Identity Credential）と手動登録の必要性
+
+Foundry は Blueprint 作成時に **1 つの FIC を自動プロビジョニング**する:
+
+| FIC                                      | Subject                                              | 用途                                                                                                |
+| ---------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Foundry 自動プロビジョニング（既定）** | `/eid1/c/pub/t/{tenantId}/a/{AML_AppID}/AzureAI/FMI` | Agent Service 内部インフラ専用。Azure Machine Learning の First-Party App の内部 FMI のみが使用可能 |
+
+この既定 FIC の subject は Azure ML 内部の FMI パスであり、**Hosted Agent コンテナ内のコードが `DefaultAzureCredential()` で取得する Project MI のトークンとは一致しない**。つまり、既定の FIC は Agent Service の内部メカニズム（MCP ツール認証等）のためのものであり、Hosted Agent 内のユーザーコードから Agent Identity として T1 トークンを取得する用途には使用できない。
+
+> **このデモアプリでの対応**: 本デモが目標とする「Hosted Agent 内のコードから Agent Identity として Identity Echo API にアクセスする」シナリオを実現するには、**Blueprint に Project MI の oid を subject とする FIC を手動で登録する必要がある**。これは Foundry の既定動作の範囲外であり、検証の過程で判明した要件である。
+>
+> ```text
+> 手動登録した FIC:
+>   subject:  {Project MI の Object ID}  ← DefaultAzureCredential() が返すトークンの oid と一致させる
+>   issuer:   https://login.microsoftonline.com/{tenantId}/v2.0
+>   audience: api://AzureADTokenExchange
+> ```
+>
+> この手動 FIC 登録により、Project MI のトークンを `client_assertion` として Blueprint に提示し、T1（Agent Identity として振る舞うトークン）を取得できるようになった。
+
+##### T1 トークンの実証済みクレーム
+
+```json
+{
+  "aud": "{api://AzureADTokenExchange の Resource ID}",
+  "iss": "https://login.microsoftonline.com/{tenantId}/v2.0",
+  "sub": "/eid1/c/pub/t/{tenantId_b64}/a/{appId_b64}/{Agent Identity ID}",
+  "oid": "{Blueprint の Object ID（Service Principal）}",
+  "idtyp": "app"
+}
+```
+
+- `aud` は Token Exchange リソース（`api://AzureADTokenExchange`）の Application ID
+- `sub` には Agent Identity ID を含む Entra Agent ID 固有の内部パス形式が入る
+- `oid` は **Blueprint の Service Principal Object ID** — T1 の発行主体として Blueprint が記録される
+- この T1 を `client_assertion` として次のステップ（TR 取得）に使用する
+
+##### T1 取得の HTTP パラメータ（実証済み）
+
+```text
+POST https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token
+
+client_id             = {Blueprint の Application (Client) ID}
+scope                 = api://AzureADTokenExchange/.default
+grant_type            = client_credentials
+client_assertion_type = urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+client_assertion      = {Project MI の api://AzureADTokenExchange トークン}
+fmi_path              = {Agent Identity の Service Principal Object ID}
+```
 
 ```text
 Foundry Project
