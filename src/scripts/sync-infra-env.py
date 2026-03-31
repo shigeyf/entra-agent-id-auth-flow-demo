@@ -35,7 +35,10 @@ TF_OUTPUT_TO_ENV: dict[str, str] = {
     "resource_api_default_scope": "ENTRA_RESOURCE_API_DEFAULT_SCOPE",
     "foundry_project_endpoint": "FOUNDRY_PROJECT_ENDPOINT",
     "foundry_model_deployment_name": "FOUNDRY_MODEL_DEPLOYMENT_NAME",
+    "foundry_agent_identity_id": "ENTRA_AGENT_IDENTITY_CLIENT_ID",
+    "foundry_agent_identity_blueprint_id": "ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID",
     "acr_login_server": "FOUNDRY_AGENT_ACR_LOGIN_SERVER",
+    "foundry_project_principal_id": "FOUNDRY_PROJECT_MSI",
 }
 
 
