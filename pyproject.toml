@@ -16,10 +16,28 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.12",
 ]
-dependencies = ["msal>=1.31.0", "requests>=2.32.0", "python-dotenv>=1.0.0"]
+dependencies = [
+  # src/frontend: Frontend SPA (Vite + React)
+  "msal>=1.31.0",
+  "requests>=2.32.0",
+  "python-dotenv>=1.0.0",
+  # src/identity_echo_api: Identity Echo API
+  "fastapi>=0.115.0",
+  "uvicorn>=0.34.0",
+  "PyJWT[crypto]>=2.9.0",
+  "httpx>=0.28.0",
+  # src/agent: Foundry Hosted Agent (client & deploy)
+  "azure-identity==1.25.3",
+  "azure-ai-projects==2.0.0b4",
+  # src/agent: Foundry Hosted Agent (runtime)
+  "azure-ai-agentserver-agentframework==1.0.0b17",
+]
 
 [project.optional-dependencies]
 dev = ["poethepoet>=0.32.0", "ruff>=0.9.0"]
+
+[tool.uv]
+prerelease = "allow"
 
 [tool.setuptools]
 packages = []
@@ -32,18 +50,43 @@ packages = []
 shell = "uv tool install pre-commit && pre-commit install --install-hooks"
 help = "Set up the development environment (install pre-commit via uv tool and hooks)"
 
-# Lint & Format
-[tool.poe.tasks.lint]
+# Lint & Format (Backend Python)
+[tool.poe.tasks.lint-backend]
 cmd = "ruff check ."
-help = "Run linting with Ruff"
+help = "Run Python linting with Ruff"
 
-[tool.poe.tasks.format]
+[tool.poe.tasks.format-backend]
 cmd = "ruff format ."
-help = "Run formatting with Ruff"
+help = "Run Python formatting with Ruff"
+
+# Lint & Format (Frontend)
+[tool.poe.tasks.lint-frontend]
+shell = "cd src/frontend && npx eslint ."
+help = "Run Frontend linting with ESLint"
+
+[tool.poe.tasks.format-frontend]
+shell = "cd src/frontend && npx prettier --write 'src/**/*.{ts,tsx,css,html}'"
+help = "Run Frontend formatting with Prettier"
+
+# Lint & Format (Infra)
+[tool.poe.tasks.lint-infra]
+shell = "cd src/infra && tflint --init && tflint"
+help = "Run Terraform linting with TFLint"
+
+[tool.poe.tasks.format-infra]
+shell = "terraform fmt -recursive src/infra"
+help = "Run Terraform formatting"
 
 [tool.poe.tasks.check]
-sequence = ["lint", "format"]
-help = "Run linting and formatting"
+sequence = [
+  "lint-backend",
+  "format-backend",
+  "lint-frontend",
+  "format-frontend",
+  "lint-infra",
+  "format-infra",
+]
+help = "Run all linting and formatting (Backend [Python], Frontend, Infra)"
 
 # Test
 [tool.poe.tasks.test]
@@ -58,6 +101,47 @@ help = "Start Identity Echo API dev server on port 8000"
 [tool.poe.tasks.frontend]
 shell = "cd src/frontend && npm run dev"
 help = "Start Frontend SPA dev server (Vite)"
+
+# Foundry Hosted Agent
+[tool.poe.tasks.agent]
+shell = "cd src/agent/runtime && python main.py"
+help = "Start Foundry Hosted Agent locally on port 8088"
+
+[tool.poe.tasks.invoke-agent]
+cmd = "python src/agent/client/invoke.py"
+help = "Invoke the deployed Hosted Agent (append message as argument, e.g. poe invoke-agent 'hello')"
+
+[tool.poe.tasks.build-agent]
+shell = """
+set -e
+cd src/agent
+ACR_LOGIN_SERVER=$(grep '^ACR_LOGIN_SERVER=' .env | cut -d= -f2)
+AGENT_NAME=$(grep '^AGENT_NAME=' .env | cut -d= -f2)
+IMAGE="${ACR_LOGIN_SERVER}/${AGENT_NAME}:latest"
+echo "Building ${IMAGE} ..."
+docker build --platform linux/amd64 -t "${IMAGE}" -f runtime/Dockerfile runtime/
+echo "Done: ${IMAGE}"
+"""
+help = "Build Hosted Agent Docker image (linux/amd64)"
+
+[tool.poe.tasks.push-agent]
+shell = """
+set -e
+cd src/agent
+ACR_LOGIN_SERVER=$(grep '^ACR_LOGIN_SERVER=' .env | cut -d= -f2)
+AGENT_NAME=$(grep '^AGENT_NAME=' .env | cut -d= -f2)
+IMAGE="${ACR_LOGIN_SERVER}/${AGENT_NAME}:latest"
+echo "Logging in to ${ACR_LOGIN_SERVER} ..."
+az acr login --name "${ACR_LOGIN_SERVER%%.*}"
+echo "Pushing ${IMAGE} ..."
+docker push "${IMAGE}"
+echo "Done: ${IMAGE}"
+"""
+help = "Push Hosted Agent Docker image to ACR"
+
+[tool.poe.tasks.deploy-agent]
+shell = "cd src/agent && python -m deploy.hosted_agent --start"
+help = "Deploy Hosted Agent to Foundry and start deployment (build-agent + push-agent first)"
 
 # Clean up
 [tool.poe.tasks.clean]
