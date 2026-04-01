@@ -17,10 +17,12 @@ scopes = [
     "https://graph.microsoft.com/AgentIdentityBlueprint.ReadWrite.All",
     "https://graph.microsoft.com/AgentIdentityBlueprintPrincipal.Create",
     "https://graph.microsoft.com/AgentIdentity.ReadWrite.All",
+    "https://graph.microsoft.com/Application.Read.All",
+    "https://graph.microsoft.com/Application.ReadWrite.OwnedBy",
     "https://graph.microsoft.com/AppRoleAssignment.ReadWrite.All",
     "https://graph.microsoft.com/DelegatedPermissionGrant.ReadWrite.All",
     "https://graph.microsoft.com/User.Read.All",
-    "User.Read",
+    "https://graph.microsoft.com/User.Read",
 ]
 authority = f"https://login.microsoftonline.com/{tenant_id}"
 

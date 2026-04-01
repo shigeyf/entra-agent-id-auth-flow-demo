@@ -45,6 +45,10 @@ locals {
     "AgentIdUser.ReadWrite.IdentityParentedBy",
     "AgentInstance.Read.All",
     "AgentInstance.ReadWrite.All",
+    "Application.Read.All",
+    "Application.ReadWrite.OwnedBy",
+    "AppRoleAssignment.ReadWrite.All",
+    "DelegatedPermissionGrant.ReadWrite.All",
     "User.Read",
     "User.Read.All",
   ]
