@@ -6,7 +6,7 @@ import msal
 from dotenv import load_dotenv, set_key
 
 # Always resolve .env relative to the project root (two levels up from this script)
-dotenv_path = Path(__file__).resolve().parent.parent.parent / ".env"
+dotenv_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path)
 
 client_id = os.environ["CLIENT_ID"]
