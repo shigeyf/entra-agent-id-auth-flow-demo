@@ -85,6 +85,8 @@ runtime/
   tools/token_exchange.py … Entra Agent ID トークン取得ツール (T1 token acquisition)
   Dockerfile              … linux/amd64 コンテナイメージ定義
   requirements.txt        … Python 依存パッケージ
+entra-agent-id/
+  set-blueprint-fic.py    … Blueprint に FIC (Federated Identity Credential) を登録・削除 (Graph API 経由)
 scripts/
   deploy-agent.py         … ビルド → ACR プッシュ → エージェントバージョン作成 -> デプロイを一括で実行
   invoke-agent.py         … デプロイ済みエージェントを OpenAI Responses API 経由で呼び出す
@@ -98,6 +100,7 @@ scripts/
 | `azure-identity`                      | DefaultAzureCredential による認証                                                                                                |
 | `httpx`                               | HTTP クライアント (トークン交換等)                                                                                               |
 | `azure-ai-projects`                   | AIProjectClient — エージェント管理・OpenAI クライアント取得 (※ スクリプト側のみ。ランタイムの `requirements.txt` には含まれない) |
+| `msal`                                | Graph API 対話型認証 — FIC 登録スクリプト (`set-blueprint-fic.py`) で使用                                                        |
 
 ## 事前準備
 
@@ -174,6 +177,94 @@ bash ./scripts/deploy.sh
 ```bash
 az login --tenant <your-tenant-id>
 ```
+
+### 4. FIC（Federated Identity Credential）の登録
+
+Hosted Agent 内のコードから **Entra Agent ID（Agent Identity）として振る舞うトークン（T1）を取得**するためには、
+Agent Identity Blueprint に **Federated Identity Credential（FIC）** を手動で登録する必要があります。
+
+#### なぜ FIC の手動登録が必要か？
+
+Foundry は Blueprint 作成時に 1 つの FIC を自動プロビジョニングしますが、この既定 FIC の subject は Azure ML 内部の FMI パスであり、
+**Hosted Agent コンテナ内のコードが `DefaultAzureCredential()` で取得する Project MI のトークンとは一致しません**。
+
+| FIC                                      | Subject                                              | 用途                                               |
+| ---------------------------------------- | ---------------------------------------------------- | -------------------------------------------------- |
+| **Foundry 自動プロビジョニング（既定）** | `/eid1/c/pub/t/{tenantId}/a/{AML_AppID}/AzureAI/FMI` | Agent Service 内部インフラ専用（MCP ツール認証等） |
+| **手動登録（本ステップ）**               | `{Project MI の Object ID}`                          | Hosted Agent コード → T1 トークン取得              |
+
+つまり、Hosted Agent 内のユーザーコードが Token Exchange で T1 を取得するには、
+**Project MI の Object ID を subject とする FIC を Blueprint に追加登録**する必要があります。
+これを行わないと、Step 2 の Token Exchange（`client_credentials` + `client_assertion`）が
+`AADSTS700223: No matching federated identity record found for presented assertion subject` エラーで失敗します。
+
+#### Token Exchange の仕組み（T1 取得）
+
+```text
+┌──────────────────────┐     Step 1: MI token           ┌─────────────────────┐
+│  Hosted Agent        │ ─────────────────────────────→ │  Entra ID           │
+│  (コンテナ内コード)  │  DefaultAzureCredential()      │  Token Endpoint     │
+│                      │  scope: api://AzureADToken     │                     │
+│                      │         Exchange/.default      │                     │
+│                      │                                │                     │
+│                      │     Step 2: Token Exchange     │                     │
+│                      │ ─────────────────────────────→ │                     │
+│                      │  client_id: Blueprint App ID   │                     │
+│                      │  client_assertion: MI token    │                     │
+│                      │  fmi_path: Agent Identity ID   │                     │
+│                      │                                │                     │
+│                      │ ←───────────────── T1 token ── │                     │
+└──────────────────────┘                                └─────────────────────┘
+
+  FIC が subject = Project MI の OID で登録されていることで、
+  Step 2 の client_assertion（MI token）が Blueprint に対する有効な credential として認められる。
+```
+
+#### 登録手順
+
+`set-blueprint-fic.py` を使って FIC を登録します（冪等: 既存の FIC がある場合はスキップ）。
+
+**前提条件:**
+
+- `.env` に以下の変数が設定されていること:
+  - `ENTRA_TENANT_ID` — テナント ID
+  - `ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID` — Blueprint の Application (Client) ID
+  - `FOUNDRY_PROJECT_MSI` — Foundry Project の Managed Identity Object ID
+  - `GRAPH_API_OPS_CLIENT_ID` — Graph API 操作用アプリのクライアント ID（[`entra_id/prereqs/`](../entra_id/prereqs/) で Terraform デプロイ済み）
+- 実行ユーザーが `AgentIdentityBlueprint.AddRemoveCreds.All` 等の Graph API 権限を持つこと
+
+**実行:**
+
+```bash
+# リポジトリルートから実行
+python src/agent/entra-agent-id/set-blueprint-fic.py
+```
+
+ブラウザが開き、Graph API のアクセス許可を求める対話型ログインが行われます。
+認証後、以下のような出力が表示されれば登録成功です:
+
+```text
+Login with browser...
+Created FIC 'foundry-project-fmi-fic' (id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+  issuer:  https://login.microsoftonline.com/{tenantId}/v2.0
+  subject: {Project MI の Object ID}
+```
+
+> **既に登録済みの場合:**
+>
+> ```text
+> FIC 'foundry-project-fmi-fic' already exists (id: ...). Skipping.
+> ```
+
+**FIC の削除（必要な場合）:**
+
+```bash
+python src/agent/entra-agent-id/set-blueprint-fic.py delete
+```
+
+> **重要**: FIC が未登録の状態でエージェントを呼び出すと、`tools/token_exchange.py` の T1 取得ステップで
+> `AADSTS700223` エラーが発生し、Agent Identity としてのリソース API アクセスが失敗します。
+> エージェントのデプロイ・起動前に必ずこのステップを完了してください。
 
 ## 使い方
 
