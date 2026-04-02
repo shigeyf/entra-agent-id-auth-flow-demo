@@ -38,6 +38,8 @@
       // "extensions" for this project are specified in here will be installed in Dev Container.
       "extensions": [
         "bierner.markdown-mermaid",
+        "charliermarsh.ruff",
+        "DavidAnson.vscode-markdownlint",
         "esbenp.prettier-vscode",
         "GitHub.vscode-github-actions",
         "hashicorp.terraform",
@@ -46,7 +48,9 @@
         "ms-azuretools.vscode-azureterraform",
         "ms-azuretools.vscode-azure-github-copilot",
         "ms-azuretools.vscode-azure-mcp-server",
+        "ms-azuretools.vscode-bicep",
         "ms-python.python",
+        "ms-python.pylance",
         "ms-toolsai.jupyter",
         "ms-toolsai.jupyter-keymap",
         "ms-toolsai.jupyter-renderers",
@@ -60,10 +64,13 @@
     }
   },
 
-  "postCreateCommand": "uv sync --extra dev && uv run poe setup && terraform version && az version",
-
-  "remoteUser": "vscode",
   "mounts": [
     "source=${localEnv:HOME}${localEnv:USERPROFILE}/.azure,target=/home/vscode/.azure,type=bind,consistency=cached"
-  ]
+  ],
+  "postCreateCommand": "bash .devcontainer/scripts/setup-pip-wrapper.sh && uv venv --clear --prompt .venv && uv sync --extra dev && uv run poe setup && terraform version && az bicep upgrade && az version",
+  "remoteUser": "vscode",
+  "remoteEnv": {
+    "AZURE_TENANT_ID": "${localEnv:AZURE_TENANT_ID}",
+    "AZURE_SUBSCRIPTION_ID": "${localEnv:AZURE_SUBSCRIPTION_ID}"
+  }
 }
