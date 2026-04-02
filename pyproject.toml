@@ -19,6 +19,7 @@ dependencies = [
   "PyJWT[crypto]>=2.9.0",
   "httpx>=0.28.0",
   # src/agent: Foundry Hosted Agent (client & deploy)
+  "pyyaml>=6.0",
   "azure-identity==1.25.3",
   "azure-ai-projects==2.0.0b4",
   # src/agent: Foundry Hosted Agent (runtime)
@@ -146,42 +147,14 @@ shell = "cd src/frontend && npm run dev"
 help = "Start Frontend SPA dev server (Vite)"
 
 # Foundry Hosted Agent
-[tool.poe.tasks.agent]
+[tool.poe.tasks.agent-local-invoke]
 shell = "cd src/agent/runtime && python main.py"
 help = "Start Foundry Hosted Agent locally on port 8088"
 
-[tool.poe.tasks.invoke-agent]
-cmd = "python src/agent/client/invoke.py"
+[tool.poe.tasks.agent-invoke]
+cmd = "cd src/agent && python ./scripts/invoke-agent.py"
 help = "Invoke the deployed Hosted Agent (append message as argument, e.g. poe invoke-agent 'hello')"
 
-[tool.poe.tasks.build-agent]
-shell = """
-set -e
-cd src/agent
-ACR_LOGIN_SERVER=$(grep '^FOUNDRY_AGENT_ACR_LOGIN_SERVER=' ../.env | cut -d= -f2)
-AGENT_NAME=$(grep '^FOUNDRY_AGENT_NAME=' ../.env | cut -d= -f2)
-IMAGE="${ACR_LOGIN_SERVER}/${AGENT_NAME}:latest"
-echo "Building ${IMAGE} ..."
-docker build --platform linux/amd64 -t "${IMAGE}" -f runtime/Dockerfile runtime/
-echo "Done: ${IMAGE}"
-"""
-help = "Build Hosted Agent Docker image (linux/amd64)"
-
-[tool.poe.tasks.push-agent]
-shell = """
-set -e
-cd src/agent
-ACR_LOGIN_SERVER=$(grep '^FOUNDRY_AGENT_ACR_LOGIN_SERVER=' ../.env | cut -d= -f2)
-AGENT_NAME=$(grep '^FOUNDRY_AGENT_NAME=' ../.env | cut -d= -f2)
-IMAGE="${ACR_LOGIN_SERVER}/${AGENT_NAME}:latest"
-echo "Logging in to ${ACR_LOGIN_SERVER} ..."
-az acr login --name "${ACR_LOGIN_SERVER%%.*}"
-echo "Pushing ${IMAGE} ..."
-docker push "${IMAGE}"
-echo "Done: ${IMAGE}"
-"""
-help = "Push Hosted Agent Docker image to ACR"
-
-[tool.poe.tasks.deploy-agent]
-shell = "cd src/agent && python -m deploy.hosted_agent --start"
-help = "Deploy Hosted Agent to Foundry and start deployment (build-agent + push-agent first)"
+[tool.poe.tasks.agent-deploy]
+shell = "cd src/agent && python ./scripts/invoke-agent.py build push deploy --start"
+help = "Deploy Hosted Agent to Foundry and start deployment (with building and pushing the agent)"
