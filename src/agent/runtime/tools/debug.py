@@ -31,19 +31,17 @@ def check_agent_environment() -> str:
     # Collect user-defined + notable env vars
     env_vars = {
         "FOUNDRY_PROJECT_ENDPOINT": os.getenv("FOUNDRY_PROJECT_ENDPOINT", "NOT SET"),
-        "FOUNDRY_MODEL_DEPLOYMENT_NAME": os.getenv(
-            "FOUNDRY_MODEL_DEPLOYMENT_NAME", "NOT SET"
-        ),
+        "FOUNDRY_MODEL_DEPLOYMENT_NAME": os.getenv("FOUNDRY_MODEL_DEPLOYMENT_NAME", "NOT SET"),
+        "ENTRA_TENANT_ID": os.getenv("ENTRA_TENANT_ID", "NOT SET"),
         "ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID": os.getenv(
             "ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID", "NOT SET"
         ),
-        "ENTRA_AGENT_IDENTITY_OID": os.getenv("ENTRA_AGENT_IDENTITY_OID", "NOT SET"),
+        "ENTRA_AGENT_IDENTITY_CLIENT_ID": os.getenv("ENTRA_AGENT_IDENTITY_CLIENT_ID", "NOT SET"),
         "RESOURCE_API_URL": os.getenv("RESOURCE_API_URL", "NOT SET"),
         "ENTRA_RESOURCE_API_SCOPE": os.getenv("ENTRA_RESOURCE_API_SCOPE", "NOT SET"),
         "ENTRA_RESOURCE_API_DEFAULT_SCOPE": os.getenv(
             "ENTRA_RESOURCE_API_DEFAULT_SCOPE", "NOT SET"
         ),
-        "ENTRA_TENANT_ID": os.getenv("ENTRA_TENANT_ID", "NOT SET"),
     }
 
     # Dump ALL environment variables (filter out obvious noise)
@@ -51,9 +49,7 @@ def check_agent_environment() -> str:
     for k, v in sorted(os.environ.items()):
         # Redact bearer tokens / secrets but keep the key visible
         lower = k.lower()
-        if any(
-            s in lower for s in ("secret", "password", "key", "token", "credential")
-        ):
+        if any(s in lower for s in ("secret", "password", "key", "token", "credential")):
             all_env[k] = f"<REDACTED, len={len(v)}>"
         else:
             all_env[k] = v

@@ -8,21 +8,17 @@ Foundry: The container CMD invokes this file directly.
 import os
 import sys
 import traceback
-from pathlib import Path
 
 print("[BOOT] main.py starting", flush=True)
 print(f"[BOOT] Python {sys.version}", flush=True)
 print(f"[BOOT] cwd={os.getcwd()}", flush=True)
-ep = os.getenv("FOUNDRY_PROJECT_ENDPOINT", "NOT_SET")
-print(f"[BOOT] FOUNDRY_PROJECT_ENDPOINT={ep}", flush=True)
-dn = os.getenv("FOUNDRY_MODEL_DEPLOYMENT_NAME", "NOT_SET")
-print(f"[BOOT] FOUNDRY_MODEL_DEPLOYMENT_NAME={dn}", flush=True)
 
 try:
-    from dotenv import load_dotenv
+    from config import config  # noqa: E402
 
-    load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
-    print("[BOOT] dotenv loaded", flush=True)
+    print("[BOOT] config loaded", flush=True)
+    print(f"[BOOT] FOUNDRY_PROJECT_ENDPOINT={config.project_endpoint}", flush=True)
+    print(f"[BOOT] FOUNDRY_MODEL_DEPLOYMENT_NAME={config.model_deployment_name}", flush=True)
 
     from agent_framework import Agent  # noqa: E402
 

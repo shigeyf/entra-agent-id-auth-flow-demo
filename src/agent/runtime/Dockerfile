@@ -1,7 +1,9 @@
-FROM --platform=linux/amd64 python:3.11-slim
+# Foundry Agent Service (Hosted Agent)
+ARG AGENT_PLATFORM=linux/amd64
+FROM --platform=$AGENT_PLATFORM python:3.11-slim
 
 # Build context: src/agent/runtime/
-#   docker build --platform linux/amd64 -t <image> -f src/agent/runtime/Dockerfile src/agent/runtime/
+#   docker build -t <image> -f src/agent/runtime/Dockerfile src/agent/runtime/
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
