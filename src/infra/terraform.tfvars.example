@@ -46,3 +46,19 @@ cognitive_deployments = [
     capacity = 100
   },
 ]
+
+# ==================================================
+# Container Apps
+# ==================================================
+
+container_apps = {
+  "identity-echo-api" = {
+    image_name    = "identity-echo-api"
+    target_port   = 8000
+    build_context = "../identity_echo_api"
+  }
+  # "backend-api" = {
+  #   image_name  = "backend-api"
+  #   target_port = 8080
+  # }
+}

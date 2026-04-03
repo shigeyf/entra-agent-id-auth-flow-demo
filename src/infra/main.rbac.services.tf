@@ -11,6 +11,10 @@
     This file is part of the 2-file RBAC structure:
       - main.rbac.services.tf: Service-to-service RBAC (this file)
       - main.rbac.users.tf: User/group RBAC
+
+    Service principals covered:
+      - Foundry Project MI → Foundry Account, ACR
+      - Container App MIs → ACR (for each app in var.container_apps)
 */
 
 # Foundry Project -> Foundry Account (Parent-child RBAC)
@@ -30,6 +34,17 @@ resource "azurerm_role_assignment" "cognitive_account_for_cognitive_account_proj
 resource "azurerm_role_assignment" "acr_for_cognitive_account_project" {
   for_each             = local.roles_foundry_project_to_acr
   principal_id         = azurerm_cognitive_account_project.this.identity[0].principal_id
+  role_definition_name = each.key
+  scope                = azurerm_container_registry.this.id
+}
+
+# Container Apps UAMI -> ACR (Container image pull)
+#   The shared User-Assigned MI is granted AcrPull before Container App creation,
+#   ensuring the first image pull succeeds without timeout.
+#   Role Definitions: local.roles_container_app_to_acr @main.rbac.definitions.tf
+resource "azurerm_role_assignment" "acr_for_container_apps" {
+  for_each             = local.roles_container_app_to_acr
+  principal_id         = azurerm_user_assigned_identity.container_apps.principal_id
   role_definition_name = each.key
   scope                = azurerm_container_registry.this.id
 }

@@ -39,6 +39,14 @@ locals {
     "AcrPull",
     "Container Registry Repository Reader",
   ])
+
+  # Container Apps UAMI → ACR (Container image pull)
+  # The shared User-Assigned Managed Identity pulls images from ACR.
+  # RBAC is assigned before Container App creation to avoid the chicken-and-egg
+  # problem that occurs with System-Assigned MI.
+  roles_container_app_to_acr = toset([
+    "AcrPull",
+  ])
 }
 
 locals {

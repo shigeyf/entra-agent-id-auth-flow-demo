@@ -40,6 +40,7 @@ INFRA_OUTPUT_TO_ENV: dict[str, str] = {
     "foundry_agent_identity_blueprint_id": "ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID",
     "acr_login_server": "FOUNDRY_AGENT_ACR_LOGIN_SERVER",
     "foundry_project_principal_id": "FOUNDRY_PROJECT_MSI",
+    "resource_api_url": "RESOURCE_API_URL",
 }
 
 # Mapping: prereqs terraform output name → .env variable name
@@ -65,9 +66,7 @@ def get_terraform_outputs(cwd: Path) -> dict[str, str]:
     return {k: v["value"] for k, v in raw.items()}
 
 
-def sync_outputs(
-    cwd: Path, mapping: dict[str, str], label: str
-) -> tuple[list[str], list[str]]:
+def sync_outputs(cwd: Path, mapping: dict[str, str], label: str) -> tuple[list[str], list[str]]:
     """Sync terraform outputs from a directory into .env. Returns (updated, skipped)."""
     if not cwd.is_dir():
         print(f"WARNING: Terraform directory not found: {cwd} — skipping {label}")

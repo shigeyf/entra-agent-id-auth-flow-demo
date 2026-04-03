@@ -123,3 +123,47 @@ output "foundry_project_principal_id" {
   description = "Foundry project system-assigned managed identity principal ID"
   value       = azurerm_cognitive_account_project.this.identity[0].principal_id
 }
+
+# -----------------------------------------------------------------------------
+# Observability
+# -----------------------------------------------------------------------------
+
+output "log_analytics_workspace_id" {
+  description = "Log Analytics Workspace resource ID"
+  value       = azurerm_log_analytics_workspace.this.id
+}
+
+output "appinsights_connection_string" {
+  description = "Application Insights connection string"
+  value       = azurerm_application_insights.this.connection_string
+  sensitive   = true
+}
+
+output "appinsights_instrumentation_key" {
+  description = "Application Insights instrumentation key"
+  value       = azurerm_application_insights.this.instrumentation_key
+  sensitive   = true
+}
+
+# -----------------------------------------------------------------------------
+# Container Apps
+# -----------------------------------------------------------------------------
+
+output "container_app_fqdns" {
+  description = "Map of Container App key → FQDN"
+  value = {
+    for k, app in azurerm_container_app.apps : k => app.ingress[0].fqdn
+  }
+}
+
+output "container_app_urls" {
+  description = "Map of Container App key → base URL (https://)"
+  value = {
+    for k, app in azurerm_container_app.apps : k => "https://${app.ingress[0].fqdn}"
+  }
+}
+
+output "resource_api_url" {
+  description = "Identity Echo API base URL — set as RESOURCE_API_URL in .env"
+  value       = "https://${azurerm_container_app.apps["identity-echo-api"].ingress[0].fqdn}"
+}
