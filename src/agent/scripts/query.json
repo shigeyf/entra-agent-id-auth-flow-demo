@@ -1,1 +1,6 @@
-[{ "role": "user", "content": "Run try_t1_token_acquisition now." }]
+[
+  {
+    "role": "user",
+    "content": "Call the resource API using the autonomous app flow."
+  }
+]

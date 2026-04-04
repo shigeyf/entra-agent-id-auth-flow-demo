@@ -231,7 +231,7 @@ def phase_deploy(*, agent_def: dict, start: bool, wait: bool, wait_timeout: int)
                 "--agent-version",
                 str(agent.version),
             ],
-            check=True,
+            check=False,
         )
         print("[DEPLOY] Waiting for deployment deletion ...")
         _wait_for_deletion(

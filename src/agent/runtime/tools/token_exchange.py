@@ -19,14 +19,8 @@ def _decode_jwt_claims(token_str: str) -> dict:
     return json.loads(decoded)
 
 
-@tool
-def try_t1_token_acquisition() -> str:
-    """Attempt T1 token acquisition using the Project MI.
-
-    Based on the Entra Agent ID documentation, performs the following 2 steps:
-    Step 1: Obtain a token for the api://AzureADTokenExchange scope using Project MI
-    Step 2: Exchange that token as a client_assertion to acquire the Blueprint T1 token
-    """
+def _run_t1_acquisition() -> str:
+    """Implementation of T1 token acquisition."""
     from azure.identity import DefaultAzureCredential
 
     TENANT_ID = os.getenv("ENTRA_TENANT_ID", "")
@@ -111,3 +105,14 @@ def try_t1_token_acquisition() -> str:
         }
 
     return json.dumps(result, indent=2, ensure_ascii=False)
+
+
+@tool
+def try_t1_token_acquisition() -> str:
+    """Attempt T1 token acquisition using the Project MI.
+
+    Based on the Entra Agent ID documentation, performs the following 2 steps:
+    Step 1: Obtain a token for the api://AzureADTokenExchange scope using Project MI
+    Step 2: Exchange that token as a client_assertion to acquire the Blueprint T1 token
+    """
+    return _run_t1_acquisition()

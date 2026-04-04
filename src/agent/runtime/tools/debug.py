@@ -19,13 +19,8 @@ def _decode_jwt_claims(token_str: str) -> dict:
     return json.loads(decoded)
 
 
-@tool
-def check_agent_environment() -> str:
-    """Check the agent runtime environment (for debugging).
-
-    Returns whether Azure credentials can be obtained, MSI identity claims,
-    and the status of key environment variables.
-    """
+def _run_env_check() -> str:
+    """Implementation of the environment check."""
     from azure.identity import DefaultAzureCredential
 
     # Collect user-defined + notable env vars
@@ -90,3 +85,13 @@ def check_agent_environment() -> str:
         indent=2,
         ensure_ascii=False,
     )
+
+
+@tool
+def check_agent_environment() -> str:
+    """Check the agent runtime environment (for debugging).
+
+    Returns whether Azure credentials can be obtained, MSI identity claims,
+    and the status of key environment variables.
+    """
+    return _run_env_check()

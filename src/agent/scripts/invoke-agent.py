@@ -169,8 +169,11 @@ def invoke(agent_input: "str | list") -> None:
     else:
         input_payload = agent_input
 
+    print(f"[input] {json.dumps(input_payload, ensure_ascii=False)}", file=sys.stderr)
+
     response = openai_client.responses.create(
         input=input_payload,
+        store=False,
         extra_body={
             "agent_reference": {
                 "name": agent.name,

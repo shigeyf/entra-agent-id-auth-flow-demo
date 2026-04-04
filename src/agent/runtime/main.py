@@ -36,6 +36,7 @@ try:
 
     print("[BOOT] DefaultAzureCredential imported", flush=True)
 
+    from tools.autonomous_app import call_resource_api_autonomous_app  # noqa: E402
     from tools.debug import check_agent_environment  # noqa: E402
     from tools.token_exchange import try_t1_token_acquisition  # noqa: E402
 
@@ -53,13 +54,19 @@ try:
     agent = Agent(
         client=_client,
         instructions=(
-            "You are a diagnostic agent. "
-            "IMPORTANT: You MUST call the try_t1_token_acquisition tool "
-            "on EVERY request. "
-            "Do NOT ask the user for confirmation. Do NOT skip the tool call. "
-            "Call the tool FIRST, then report the result."
+            "You are a diagnostic agent for Entra Agent ID\n"
+            "ALWAYS call a tool immediately. Never reply with text only.\n"
+            "Select the tool based on the user's request:\n"
+            "- call_resource_api_autonomous_app: for autonomous app flow, resource API calls\n"
+            "- check_agent_environment: for environment checks, debugging, credential status\n"
+            "- try_t1_token_acquisition: for T1 token tests, token exchange experiments\n"
+            "Call the tool and report results.\n"
         ),
-        tools=[check_agent_environment, try_t1_token_acquisition],
+        tools=[
+            call_resource_api_autonomous_app,
+            check_agent_environment,
+            try_t1_token_acquisition,
+        ],
     )
     print("[BOOT] Agent created", flush=True)
 

@@ -55,7 +55,14 @@ Hosted Agent のデプロイは以下の 4 フェーズで構成されます:
 | **deploy** | `AIProjectClient.agents.create_version()` で Agent Version を作成。`agent.yaml` の定義（イメージ URI、CPU/メモリ、環境変数、プロトコル）が Foundry Agent Service に登録される | `deploy-agent.py` / `azure-ai-projects` SDK |
 | **start**  | `az cognitiveservices agent start` で Foundry Agent Service がコンテナを起動し、Responses API 経由でルーティング可能にする                                                    | Azure CLI / Foundry Agent Service           |
 
-> **Agent Version**: 各デプロイは一意のバージョンとして管理されます。同一エージェント名で複数のバージョンを作成し、切り替えることが可能です。
+> **Agent Version の冪等性**: `create_version` API は冪等です。定義（イメージ URI、環境変数等）が前回と同一の場合、新しいバージョンは作成されず既存バージョンが返されます。
+> `deploy-agent.py` はこの挙動を検知し、既存バージョンが返された場合は `delete-deployment` → `start` でコンテナイメージを入れ替えます。
+
+```text
+create_version
+  ├─ 新バージョン ──────────────────────→ start → (--wait でポーリング)
+  └─ 既存バージョン → delete-deployment → start → (--wait でポーリング)
+```
 
 ### 通信プロトコル
 
@@ -280,6 +287,12 @@ python ./scripts/deploy-agent.py
 
 # デプロイ後にエージェントを起動する場合
 python ./scripts/deploy-agent.py --start
+
+# 起動後、Ready になるまで待機する場合 (--wait は --start を暗黙的に含む)
+python ./scripts/deploy-agent.py --wait
+
+# 待機タイムアウトを指定する場合 (デフォルト: 1020秒 = 15分 + 2分マージン)
+python ./scripts/deploy-agent.py --wait --wait-timeout 600
 ```
 
 個別のフェーズのみ実行することもできます:
@@ -296,6 +309,9 @@ python ./scripts/deploy-agent.py deploy
 
 # ビルド + プッシュのみ (デプロイはスキップ)
 python ./scripts/deploy-agent.py build push
+
+# ビルド → プッシュ → デプロイ → 起動 → Ready 待機
+python ./scripts/deploy-agent.py build push deploy --wait
 ```
 
 ### Azure CLI によるエージェント管理
@@ -339,12 +355,22 @@ az cognitiveservices agent status \
 
 主なステータス:
 
-| ステータス     | 説明                                           |
-| -------------- | ---------------------------------------------- |
-| `Provisioning` | コンテナの起動中                               |
-| `Running`      | 正常稼働中。Responses API でリクエスト受付可能 |
-| `Failed`       | 起動失敗。ログを確認してください               |
-| `Stopped`      | 停止済み                                       |
+| フィールド                     | 値                   | 説明                                           |
+| ------------------------------ | -------------------- | ---------------------------------------------- |
+| `status`                       | `Running`            | 正常稼働中                                     |
+| `status`                       | `Failed`             | 起動失敗。ログを確認してください               |
+| `status`                       | `Stopped`            | 停止済み                                       |
+| `status`                       | `Deleted`            | デプロイメント削除済み                         |
+| `container.provisioning_state` | `Succeeded`          | コンテナのプロビジョニング完了                 |
+| `container.health_state`       | `Healthy`            | ヘルスチェック正常                             |
+| `container.state`              | `RunningAtMaxScale`  | コンテナ実行中（レプリカ数上限）               |
+
+`deploy-agent.py --wait` は以下のすべてが揃った時点で Ready と判定します:
+
+- `status` == `Running`
+- `container.provisioning_state` == `Succeeded`
+- `container.health_state` == `Healthy`
+- `container.state` が `Running` で始まる（例: `RunningAtMaxScale`）
 
 #### エージェントの停止
 
