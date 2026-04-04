@@ -50,6 +50,7 @@
         "ms-azuretools.vscode-azure-mcp-server",
         "ms-azuretools.vscode-bicep",
         "ms-python.python",
+        "ms-python.vscode-python-envs",
         "ms-python.pylance",
         "ms-toolsai.jupyter",
         "ms-toolsai.jupyter-keymap",
@@ -57,10 +58,12 @@
         "ms-vscode.azurecli",
         "redhat.vscode-yaml",
         "tamasfe.even-better-toml"
-      ]
+      ],
       // "settings" for this project must be placed in infra/terraform/.vscode/settings.json.
       // DevContainer automatically inherits the workspace settings.json.
-      // "settings": {}
+      "settings": {
+        "python-envs.terminal.autoActivationType": "shellStartup"
+      }
     }
   },
 

@@ -152,9 +152,9 @@ shell = "cd src/agent/runtime && python main.py"
 help = "Start Foundry Hosted Agent locally on port 8088"
 
 [tool.poe.tasks.agent-invoke]
-cmd = "cd src/agent && python ./scripts/invoke-agent.py"
+shell = "cd src/agent && python ./scripts/invoke-agent.py"
 help = "Invoke the deployed Hosted Agent (append message as argument, e.g. poe invoke-agent 'hello')"
 
 [tool.poe.tasks.agent-deploy]
-shell = "cd src/agent && python ./scripts/invoke-agent.py build push deploy --start"
+shell = "cd src/agent && python ./scripts/deploy-agent.py build push deploy --start --wait"
 help = "Deploy Hosted Agent to Foundry and start deployment (with building and pushing the agent)"
