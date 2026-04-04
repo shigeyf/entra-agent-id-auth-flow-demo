@@ -612,13 +612,13 @@ GET /api/resource
 
 #### `callerType` の判定ロジック
 
-| 条件                                                     | callerType             |
-| -------------------------------------------------------- | ---------------------- |
-| `scp` なし + `roles` あり                                | `app_only`             |
-| `scp` あり + `upn` = `AGENT_USER_UPN` 環境変数           | `delegated_agent_user` |
-| `scp` あり + `upn` ≠ `AGENT_USER_UPN`（またはUPN未設定） | `delegated_human_user` |
+| 条件                                                              | callerType             |
+| ----------------------------------------------------------------- | ---------------------- |
+| `scp` なし + `roles` あり                                         | `app_only`             |
+| `scp` あり + `upn` = `ENTRA_AGENT_ID_USER_UPN` 環境変数           | `delegated_agent_user` |
+| `scp` あり + `upn` ≠ `ENTRA_AGENT_ID_USER_UPN`（またはUPN未設定） | `delegated_human_user` |
 
-> `AGENT_USER_UPN` は Identity Echo API の環境変数として設定する（例: `agentuser@contoso.com`）。Agent User の delegated トークンと人間ユーザーの delegated トークンは JWT claims 上の構造が同一であるため、`upn` を既知の Agent User UPN と照合する以外に区別する方法がない。
+> `ENTRA_AGENT_ID_USER_UPN` は Identity Echo API の環境変数として設定する（例: `agentuser@contoso.com`）。Agent User の delegated トークンと人間ユーザーの delegated トークンは JWT claims 上の構造が同一であるため、`upn` を既知の Agent User UPN と照合する以外に区別する方法がない。
 
 #### トークン検証処理
 
