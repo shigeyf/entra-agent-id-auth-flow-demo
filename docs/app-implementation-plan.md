@@ -3,10 +3,10 @@
 | 項目               | 内容                                           |
 | ------------------ | ---------------------------------------------- |
 | **ドキュメント名** | Entra Agent ID デモアプリ 実装タスク計画書     |
-| **バージョン**     | 1.1                                            |
+| **バージョン**     | 1.2                                            |
 | **作成日**         | 2026-03-27                                     |
 | **最終更新日**     | 2026-04-04                                     |
-| **ステータス**     | Phase 2 Step A 完了、Step B 実装済み（検証中） |
+| **ステータス**     | Phase 2 Step B 完了（E2E 検証済み）            |
 
 ---
 
@@ -772,21 +772,21 @@ response = openai.responses.create(
 **段階 1: インフラ疎通確認**
 
 - [x] `terraform apply` が成功する — ✅ `azurerm_container_app.apps["identity-echo-api"]` 作成済み
-- [ ] `curl https://{fqdn}/health` → `{"status": "ok"}`
-- [ ] `curl https://{fqdn}/api/resource` → HTTP 401（Bearer トークンなし）
+- [x] `curl https://{fqdn}/health` → `{"status": "ok"}` — ✅ HTTP 200 + `{"status":"ok"}` 確認済み
+- [x] `curl https://{fqdn}/api/resource` → HTTP 401（Bearer トークンなし） — ✅ HTTP 401 + `{"detail":"Missing or invalid Authorization header"}` 確認済み
 
 **段階 2: SPA（Phase 1）からのクラウド API 動作確認**
 
-- [ ] SPA の `RESOURCE_API_URL` をクラウド URL（`https://{fqdn}`）に変更
-- [ ] Identity Echo API の CORS `allow_origins` にクラウド SPA のオリジン（またはローカル `localhost:5173`）を含めることを確認
-- [ ] SPA でログイン → Identity Echo API 呼び出し → `callerType: "delegated_human_user"` が返ることを確認
+- [x] SPA の `RESOURCE_API_URL` をクラウド URL（`https://{fqdn}`）に変更 — ✅ `src/.env` に `RESOURCE_API_URL=https://ca-identity-echo-api-86d21f.gentlesand-f7ed7d5b.swedencentral.azurecontainerapps.io` 設定済み
+- [x] Identity Echo API の CORS `allow_origins` にクラウド SPA のオリジン（またはローカル `localhost:5173`）を含めることを確認 — ✅ `allow_origins` に `http://localhost:5173` 含む
+- [x] SPA でログイン → Identity Echo API 呼び出し → `callerType: "delegated_human_user"` が返ることを確認 — ✅ 確認済み
   - Phase 1 のローカル環境で確認済みのフローをクラウド API に向けて再実行するだけなので、ここで失敗すれば問題は 100% デプロイ側（CORS / Ingress / 環境変数）にある
 
 > **この段階が通れば**: Identity Echo API がクラウド上で正しくトークン検証・レスポンス返却できることが確定する。
 
 **段階 3: Hosted Agent への反映**
 
-- [ ] Hosted Agent の環境変数 `RESOURCE_API_URL` を Container App の FQDN（`https://{app-name}.{region}.azurecontainerapps.io`）に更新し、Agent version を再作成
+- [x] Hosted Agent の環境変数 `RESOURCE_API_URL` を Container App の FQDN（`https://{app-name}.{region}.azurecontainerapps.io`）に更新し、Agent version を再作成 — ✅ デプロイ確認済み
 
 **切り分けポイント:**
 
@@ -823,14 +823,27 @@ response = openai.responses.create(
 
 **権限設定:**
 
-- [ ] Agent Identity に `CallerIdentity.Read.All`（Application Permission）を付与
-  - `demo-identity-echo-api` > Enterprise Applications > Agent Identity を検索 > Add Permission
+- [x] Agent Identity に `CallerIdentity.Read.All`（Application Permission）を付与 — ✅ `src/agent/entra-agent-id/grant-approle-to-agent-identity.py` スクリプトで Graph API 経由で付与済み
+  - Graph API `POST /servicePrincipals/{resourceId}/appRoleAssignedTo` で App Role Assignment を作成
+  - 冪等（既存の場合はスキップ）、`revoke` サブコマンドで取り消し可能
 
 **動作確認:**
 
-- [ ] Docker イメージを再ビルド → ACR push → Agent version 更新
-- [ ] Foundry Agent API 経由で Agent に「リソース API を autonomous app フローで呼び出して」と送信
-- [ ] Identity Echo API から `callerType: "app_only"` と Agent Identity の OID が返ることを確認
+- [x] Docker イメージを再ビルド → ACR push → Agent version 更新 — ✅ デプロイ済み
+- [x] Foundry Agent API 経由で Agent に「リソース API を autonomous app フローで呼び出して」と送信 — ✅ `scripts/invoke-agent.py` で確認
+- [x] Identity Echo API から `callerType: "app_only"` と Agent Identity の OID が返ることを確認 — ✅ 全 3 ステップ成功を確認
+
+**検証結果（2026-04-04）:**
+
+```json
+{
+  "step1_get_t1": { "success": true, "claims": { "oid": "5cbe3864-...", "sub": "/eid1/c/pub/t/.../6fac9afc-..." } },
+  "step2_exchange_app_token": { "success": true, "claims": { "aud": "52d603ac-...", "sub": "6fac9afc-...", "roles": ["CallerIdentity.Read.All"] } },
+  "step3_call_resource_api": { "success": true, "status_code": 200, "body": { "caller": { "callerType": "app_only", "oid": "6fac9afc-...", "roles": ["CallerIdentity.Read.All"] } } }
+}
+```
+
+> **確認事項**: TR の `aud` が Identity Echo API の App ID（`52d603ac-...`）と一致、`sub`/`oid` が Agent Identity OID（`6fac9afc-...`）と一致、`roles` に `CallerIdentity.Read.All` が含まれる。Identity Echo API は `callerType: "app_only"` を正しく判定。
 
 **切り分けポイント:**
 
