@@ -43,6 +43,7 @@ INFRA_OUTPUT_TO_ENV: dict[str, str] = {
     "resource_api_url": "RESOURCE_API_URL",
     "backend_api_url": "BACKEND_API_URL",
     "backend_api_foundry_access_client_id": "ENTRA_BACKEND_API_FOUNDRY_ACCESS_CLIENT_ID",
+    "frontend_spa_app_url": "FRONTEND_SPA_APP_URL",
 }
 
 # Mapping: prereqs terraform output name → .env variable name
