@@ -38,7 +38,7 @@ try:
 
     from tools.autonomous_app import call_resource_api_autonomous_app  # noqa: E402
     from tools.debug import check_agent_environment  # noqa: E402
-    from tools.token_exchange import try_t1_token_acquisition  # noqa: E402
+    # from tools.token_exchange import try_t1_token_acquisition  # noqa: E402
 
     print("[BOOT] tools imported", flush=True)
 
@@ -54,18 +54,34 @@ try:
     agent = Agent(
         client=_client,
         instructions=(
-            "You are a diagnostic agent for Entra Agent ID\n"
+            "You are a caller agent for Identity Echo API (extrernal resource API) "
+            "using Entra Agent ID\n"
             "ALWAYS call a tool immediately. Never reply with text only.\n"
-            "Select the tool based on the user's request:\n"
-            "- call_resource_api_autonomous_app: for autonomous app flow, resource API calls\n"
-            "- check_agent_environment: for environment checks, debugging, credential status\n"
-            "- try_t1_token_acquisition: for T1 token tests, token exchange experiments\n"
-            "Call the tool and report results.\n"
+            "Call the tool and report results.\n\n"
+            "This agent has the following tools to respond to user requests.\n"
+            "Please follow the tool usage instructions and examples "
+            "to decide which tool to call for each request:\n\n"
+            "1. `call_resource_api_autonomous_app`: call this tool by default\n"
+            "    - This tools is used for autonomous agent app flow to call the resource API\n"
+            "    - Example: `Please call the resource API using autonomous agent app flow`\n"
+            "    - NOTE: This is the default selection for no message from users "
+            "or messages without specific keywords\n"
+            "2. `check_agent_environment`: call this tool only when recieving user requests, "
+            "which are including keywords, such as  'debugging`, `environment`, and `status`\n"
+            "    - This tools is used for autonomous agent app flow to call the resource API\n"
+            "    - Example: `Please help to check the agent environment and status` \n"
+            # "You are a diagnostic agent for Entra Agent ID\n"
+            # "ALWAYS call a tool immediately. Never reply with text only.\n"
+            # "Select the tool based on the user's request:\n"
+            # "- call_resource_api_autonomous_app: for autonomous app flow, resource API calls\n"
+            # "- check_agent_environment: for environment checks, debugging, credential status\n"
+            # "- try_t1_token_acquisition: for T1 token tests, token exchange experiments\n"
+            # "Call the tool and report results.\n"
         ),
         tools=[
             call_resource_api_autonomous_app,
             check_agent_environment,
-            try_t1_token_acquisition,
+            # try_t1_token_acquisition,  # This is just for testing Agent ID T1 token acquisition
         ],
     )
     print("[BOOT] Agent created", flush=True)

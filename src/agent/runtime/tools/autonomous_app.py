@@ -11,14 +11,19 @@ from config import config
 def _run_autonomous_app() -> str:
     """Implementation of the Autonomous App flow."""
     result: dict = {
-        "step1_get_t1": {},
-        "step2_exchange_app_token": {},
-        "step3_call_resource_api": {},
+        "name": "call_resource_api_autonomous_app",
+        "description": "Call Identity Echo API using the Agent Identity Autonomous App flow.",
+        "outputs": {},
+        "logs": {
+            "step1_get_t1": {},
+            "step2_exchange_app_token": {},
+            "step3_call_resource_api": {},
+        },
     }
 
     # Step 1: Get T1
     t1_result = get_t1()
-    result["step1_get_t1"] = {
+    result["logs"]["step1_get_t1"] = {
         "success": t1_result["success"],
         "claims": {
             k: t1_result.get("claims", {}).get(k, "N/A")
@@ -34,7 +39,7 @@ def _run_autonomous_app() -> str:
 
     # Step 2: Exchange T1 → TR (app-only)
     tr_result = exchange_app_token(t1_result["access_token"])
-    result["step2_exchange_app_token"] = {
+    result["logs"]["step2_exchange_app_token"] = {
         "success": tr_result["success"],
         "claims": {
             k: tr_result.get("claims", {}).get(k, "N/A")
@@ -57,15 +62,20 @@ def _run_autonomous_app() -> str:
             headers={"Authorization": f"Bearer {tr_result['access_token']}"},
             timeout=30,
         )
-        result["step3_call_resource_api"] = {
+        result["logs"]["step3_call_resource_api"] = {
             "success": resp.status_code == 200,
             "status_code": resp.status_code,
             "body": resp.json()
             if resp.headers.get("content-type", "").startswith("application/json")
             else resp.text,
         }
+        result["outputs"] = (
+            resp.json()
+            if resp.headers.get("content-type", "").startswith("application/json")
+            else {"raw_response": resp.text}
+        )
     except Exception as exc:
-        result["step3_call_resource_api"] = {
+        result["logs"]["step3_call_resource_api"] = {
             "success": False,
             "error": f"request_exception: {exc}",
         }
@@ -75,7 +85,7 @@ def _run_autonomous_app() -> str:
 
 @tool
 def call_resource_api_autonomous_app() -> str:
-    """Call Identity Echo API using the Autonomous App flow.
+    """Call Identity Echo API using the Agent Identity Autonomous App flow.
 
     Performs the full token chain:
       1. get_t1()  — Project MI → T1 (Agent Identity token)
@@ -83,5 +93,24 @@ def call_resource_api_autonomous_app() -> str:
       3. Call Identity Echo API with TR as Bearer token
 
     Returns the Identity Echo API response showing who the caller was identified as.
+
+    Returns:
+        A JSON string containing the full logs and outputs of each step
+        for transparency and debugging.
+
+    JSON format:
+        {
+            "name": "call_resource_api_autonomous_app",
+            "description": "Call Identity Echo API using the Agent Identity Autonomous App flow.",
+            "outputs": { ... }, // The final output from the Identity Echo API call
+            "logs": {
+                "step1_get_t1": { .... },
+                // Logs related to the get_t1 step, including success status and claims
+                "step2_exchange_app_token": { ... },
+                // Logs related to the token exchange step
+                "step3_call_resource_api": { ... }
+                // Logs related to the API call step, including response status and body
+            }
+        }
     """
     return _run_autonomous_app()

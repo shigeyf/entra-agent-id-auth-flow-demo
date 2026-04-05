@@ -13,7 +13,7 @@ import { loginRequest } from "./authConfig";
 import { getCallerInfo } from "./api/identityEchoApi";
 import CallerInfo from "./components/CallerInfo";
 import TokenChainSteps from "./components/TokenChainSteps";
-import { extractCallerInfo, isTokenChainData, isTokenChainSuccess } from "./utils/extractAgentToolOutput";
+import { extractCallerInfo, extractTokenChainLogs, isTokenChainData, isTokenChainSuccess } from "./utils/extractAgentToolOutput";
 import AutonomousChatPanel from "./components/AutonomousChatPanel";
 import "./App.css";
 
@@ -156,7 +156,7 @@ function App() {
                 </summary>
                 <div className="result-accordion-body">
                   {isTokenChainData(agentToolOutput) ? (
-                    <TokenChainSteps data={agentToolOutput} />
+                    <TokenChainSteps data={extractTokenChainLogs(agentToolOutput)} />
                   ) : streamCompleted && !isTokenChainData(agentToolOutput) ? (
                     <div className="result-error">
                       エージェントの応答に Token Chain データが含まれていませんでした。クエリ内容を確認してください。

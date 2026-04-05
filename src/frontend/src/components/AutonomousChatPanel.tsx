@@ -5,7 +5,7 @@ import {
 } from "../api/backendApi";
 
 const DEFAULT_MESSAGE =
-  "Call the resource API using the autonomous app flow.";
+  "Please call the resource API using autonomous agent app flow.";
 
 interface AutonomousChatPanelProps {
   /** Called when tool_output is received from the agent. */
@@ -152,7 +152,7 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
     <div className="chat-panel">
       <h3>Autonomous App Flow</h3>
       <p className="chat-description">
-        Backend API (MSI) → Foundry Hosted Agent → Identity Echo API
+        Backend API (MSI) → Foundry Hosted Agent (Agent Identity) → Identity Echo API
       </p>
 
       {/* Chat messages */}

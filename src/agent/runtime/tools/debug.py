@@ -24,7 +24,7 @@ def _run_env_check() -> str:
     from azure.identity import DefaultAzureCredential
 
     # Collect user-defined + notable env vars
-    env_vars = {
+    user_defined_env_vars = {
         "FOUNDRY_PROJECT_ENDPOINT": os.getenv("FOUNDRY_PROJECT_ENDPOINT", "NOT SET"),
         "FOUNDRY_MODEL_DEPLOYMENT_NAME": os.getenv("FOUNDRY_MODEL_DEPLOYMENT_NAME", "NOT SET"),
         "ENTRA_TENANT_ID": os.getenv("ENTRA_TENANT_ID", "NOT SET"),
@@ -40,14 +40,14 @@ def _run_env_check() -> str:
     }
 
     # Dump ALL environment variables (filter out obvious noise)
-    all_env = {}
+    env_vars = {}
     for k, v in sorted(os.environ.items()):
         # Redact bearer tokens / secrets but keep the key visible
         lower = k.lower()
         if any(s in lower for s in ("secret", "password", "key", "token", "credential")):
-            all_env[k] = f"<REDACTED, len={len(v)}>"
+            env_vars[k] = f"<REDACTED, len={len(v)}>"
         else:
-            all_env[k] = v
+            env_vars[k] = v
 
     credential_status: dict = {}
     identity_claims: dict = {}
@@ -76,11 +76,20 @@ def _run_env_check() -> str:
 
     return json.dumps(
         {
-            "status": "ok",
-            **credential_status,
-            "identity": identity_claims,
-            "env": env_vars,
-            "all_env": all_env,
+            "name": "check_agent_environment",
+            "description": (
+                "Check the agent runtime environment,"
+                " including Azure credentials and user-defined variables."
+            ),
+            "outputs": {
+                "env_vars": env_vars,
+                "user_defined_env_vars": user_defined_env_vars,
+                "identity_claims": identity_claims,
+            },
+            "logs": {
+                "status": "ok",
+                **credential_status,
+            },
         },
         indent=2,
         ensure_ascii=False,
@@ -91,7 +100,29 @@ def _run_env_check() -> str:
 def check_agent_environment() -> str:
     """Check the agent runtime environment (for debugging).
 
-    Returns whether Azure credentials can be obtained, MSI identity claims,
-    and the status of key environment variables.
+    Returns all environment variables of Foundry Agent Service runtime,
+    MSI identity claims if Azure credentials can be obtained from the runtime,
+    and all other user-defined environment variables.
+
+    Returns:
+        A JSON string containing the environment check results.
+
+    JSON format:
+        {
+            "name": "check_agent_environment",
+            "description": "Check the agent runtime environment,"
+            " including Azure credentials and user-defined variables.",
+            "outputs": {
+                "env_vars": { ...all environment variables with sensitive values redacted... },
+                "user_defined_env_vars": { ...key environment variables of interest... },
+                "identity_claims": { ...claims decoded from MSI token if available... }
+            },
+            "logs": {
+                "status": "ok",
+                "credential_obtained": true/false,
+                "token_expires_on": timestamp if credential_obtained else null,
+                "error": error message if credential_obtained is false else null
+            }
+        }
     """
     return _run_env_check()
