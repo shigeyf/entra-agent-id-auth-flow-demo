@@ -32,6 +32,7 @@ locals {
     "identity-echo-api" = {
       ENTRA_TENANT_ID              = data.azurerm_client_config.current.tenant_id
       ENTRA_RESOURCE_API_CLIENT_ID = azuread_application.resource_api.client_id
+      FRONTEND_SPA_APP_URL         = "https://${azurerm_static_web_app.frontend.default_host_name}"
     }
     "backend-api" = {
       ENTRA_TENANT_ID          = data.azurerm_client_config.current.tenant_id
