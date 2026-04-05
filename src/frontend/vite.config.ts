@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   envDir: '../',
-  envPrefix: ['ENTRA_', 'RESOURCE_API_', 'FOUNDRY_'],
+  envPrefix: ['ENTRA_', 'RESOURCE_API_', 'FOUNDRY_', 'BACKEND_'],
   server: {
     host: true,
   },

@@ -147,3 +147,387 @@ header h1 {
   font-size: 0.8rem;
   line-height: 1.4;
 }
+
+/* ===== Scenario Tabs ===== */
+.scenario-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 1.5rem;
+}
+
+.scenario-tabs .tab {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  background: none;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: #666;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.scenario-tabs .tab:hover {
+  color: #333;
+}
+
+.scenario-tabs .tab.active {
+  color: #0078d4;
+  border-bottom-color: #0078d4;
+  font-weight: 600;
+}
+
+/* ===== Agent Result Section (outside chat panel) ===== */
+.agent-result-section {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* --- Result Accordion --- */
+.result-accordion {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.result-accordion > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  background: #fafbfc;
+  border-bottom: 1px solid transparent;
+  list-style: none;
+  user-select: none;
+}
+
+.result-accordion > summary::-webkit-details-marker {
+  display: none;
+}
+
+.result-accordion > summary::before {
+  content: "▶";
+  font-size: 0.7rem;
+  color: #888;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.result-accordion[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.result-accordion[open] > summary {
+  border-bottom-color: #e0e0e0;
+}
+
+.result-accordion-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.result-accordion-badge {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.badge-pending {
+  background: #f0f0f0;
+  color: #888;
+}
+
+.badge-ready {
+  background: #d4edda;
+  color: #155724;
+}
+
+.badge-error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.result-accordion-body {
+  padding: 1rem;
+}
+
+.result-accordion-body .token-chain {
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: none;
+}
+
+.result-accordion-body .caller-info {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.result-placeholder {
+  text-align: center;
+  color: #999;
+  padding: 1.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.result-error {
+  color: #d32f2f;
+  background: #ffeef0;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+/* ===== Chat Panel ===== */
+.chat-panel {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.chat-panel h3 {
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+}
+
+.chat-description {
+  color: #666;
+  font-size: 0.85rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-family: monospace;
+}
+
+.chat-messages {
+  min-height: 200px;
+  max-height: 600px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0;
+}
+
+.chat-empty {
+  text-align: center;
+  color: #999;
+  padding: 3rem 1rem;
+}
+
+.chat-bubble {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  max-width: 95%;
+}
+
+.chat-user {
+  background: #e7f0fd;
+  margin-left: auto;
+  max-width: 80%;
+  text-align: right;
+}
+
+.chat-assistant {
+  background: #f5f5f5;
+}
+
+.chat-role {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #888;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+}
+
+.chat-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.chat-typing {
+  color: #999;
+  font-style: italic;
+}
+
+.chat-tool-output {
+  margin-top: 0.75rem;
+}
+
+.chat-json-details {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.chat-json-details summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #0078d4;
+  font-weight: 600;
+}
+
+.chat-json {
+  background: #f8f8f8;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.chat-error {
+  color: #d32f2f;
+  background: #ffeef0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.chat-input-area {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 2.5rem;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: #0078d4;
+}
+
+.chat-input:disabled {
+  background: #f5f5f5;
+}
+
+.chat-actions {
+  display: flex;
+  flex-shrink: 0;
+}
+
+/* ===== Token Chain Steps ===== */
+.token-chain {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background: #fafbfc;
+}
+
+.token-chain h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.token-chain-step {
+  padding: 0.5rem 0;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.step-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.step-indicator.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.step-indicator.failure {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.step-number {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.step-label {
+  font-size: 0.9rem;
+}
+
+.step-description {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0.2rem 0 0 1.9rem;
+  font-family: monospace;
+}
+
+.step-claims {
+  margin: 0.4rem 0 0 1.9rem;
+}
+
+.step-claims table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.step-claims th,
+.step-claims td {
+  padding: 0.2rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.step-claims th {
+  width: 80px;
+  color: #555;
+  font-weight: 600;
+}
+
+.step-claims code {
+  background: #f0f0f0;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.78rem;
+}
+
+.step-error {
+  margin: 0.3rem 0 0 1.9rem;
+  color: #d32f2f;
+  font-size: 0.85rem;
+}
+
+.step-connector {
+  text-align: center;
+  color: #bbb;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.15rem 0;
+}
