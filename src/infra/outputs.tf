@@ -177,3 +177,28 @@ output "backend_api_foundry_access_client_id" {
   description = "Backend API dedicated UAMI client ID for Foundry access — set as ENTRA_BACKEND_API_FOUNDRY_ACCESS_CLIENT_ID in .env"
   value       = azurerm_user_assigned_identity.backend_api.client_id
 }
+
+# -----------------------------------------------------------------------------
+# Static Web App (SPA Frontend)
+# -----------------------------------------------------------------------------
+
+output "swa_name" {
+  description = "Static Web App resource name"
+  value       = azurerm_static_web_app.frontend.name
+}
+
+output "swa_default_hostname" {
+  description = "Static Web App default hostname"
+  value       = azurerm_static_web_app.frontend.default_host_name
+}
+
+output "frontend_spa_app_url" {
+  description = "Static Web App URL — use as the SPA base URL"
+  value       = "https://${azurerm_static_web_app.frontend.default_host_name}"
+}
+
+output "swa_deployment_token" {
+  description = "Static Web App deployment token — used by `swa deploy` CLI"
+  value       = azurerm_static_web_app.frontend.api_key
+  sensitive   = true
+}

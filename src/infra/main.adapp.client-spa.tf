@@ -6,7 +6,10 @@ resource "azuread_application" "client_spa" {
   sign_in_audience = "AzureADMyOrg"
 
   single_page_application {
-    redirect_uris = var.client_app_redirect_uris
+    redirect_uris = concat(
+      var.client_app_redirect_uris,
+      ["https://${azurerm_static_web_app.frontend.default_host_name}/"],
+    )
   }
 
   # API Permission: Identity Echo API — CallerIdentity.Read (Delegated)

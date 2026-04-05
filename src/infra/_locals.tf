@@ -13,6 +13,9 @@ locals {
   container_apps_identity_name = "uami-ca-acr-${local.resource_long_name}"
   backend_api_identity_name    = "uami-ca-foundry-${local.resource_long_name}"
   log_analytics_workspace_name = "law-${local.resource_long_name}"
+
+  # Static Web App
+  swa_name = "swa-${local.resource_long_name}"
 }
 
 /*
@@ -34,6 +37,7 @@ locals {
       ENTRA_TENANT_ID          = data.azurerm_client_config.current.tenant_id
       FOUNDRY_PROJECT_ENDPOINT = "${azurerm_cognitive_account.this.endpoint}api/projects/${azurerm_cognitive_account_project.this.name}"
       AZURE_CLIENT_ID          = azurerm_user_assigned_identity.backend_api.client_id
+      FRONTEND_SPA_APP_URL     = "https://${azurerm_static_web_app.frontend.default_host_name}"
     }
   }
 
