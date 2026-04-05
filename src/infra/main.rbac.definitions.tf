@@ -47,6 +47,13 @@ locals {
   roles_container_app_to_acr = toset([
     "AcrPull",
   ])
+
+  # Backend API UAMI → Foundry Account (Agent invocation)
+  # The Backend API calls the Foundry Agent API using its dedicated UAMI.
+  # Cognitive Services User is required to invoke the Hosted Agent.
+  roles_backend_api_to_foundry_account = toset([
+    "Cognitive Services User",
+  ])
 }
 
 locals {

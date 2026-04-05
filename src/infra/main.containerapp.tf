@@ -29,3 +29,18 @@ resource "azurerm_user_assigned_identity" "container_apps" {
   location            = var.location
   tags                = local.tags
 }
+
+/*
+  User-Assigned Managed Identity dedicated to the Backend API.
+
+  Granted Cognitive Services User on the Foundry Account so that the Backend API
+  can invoke the Hosted Agent via the OpenAI Responses API.  The AZURE_CLIENT_ID
+  environment variable in the Container App points to this UAMI's client_id,
+  ensuring DefaultAzureCredential() selects it over the shared ACR-pull UAMI.
+*/
+resource "azurerm_user_assigned_identity" "backend_api" {
+  name                = local.backend_api_identity_name
+  resource_group_name = azurerm_resource_group.this.name
+  location            = var.location
+  tags                = local.tags
+}

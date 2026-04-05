@@ -41,6 +41,8 @@ INFRA_OUTPUT_TO_ENV: dict[str, str] = {
     "acr_login_server": "FOUNDRY_AGENT_ACR_LOGIN_SERVER",
     "foundry_project_principal_id": "FOUNDRY_PROJECT_MSI",
     "resource_api_url": "RESOURCE_API_URL",
+    "backend_api_url": "BACKEND_API_URL",
+    "backend_api_foundry_access_client_id": "ENTRA_BACKEND_API_FOUNDRY_ACCESS_CLIENT_ID",
 }
 
 # Mapping: prereqs terraform output name → .env variable name

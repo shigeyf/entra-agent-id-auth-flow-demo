@@ -167,3 +167,13 @@ output "resource_api_url" {
   description = "Identity Echo API base URL — set as RESOURCE_API_URL in .env"
   value       = "https://${azurerm_container_app.apps["identity-echo-api"].ingress[0].fqdn}"
 }
+
+output "backend_api_url" {
+  description = "Backend API base URL — set as BACKEND_API_URL in .env"
+  value       = "https://${azurerm_container_app.apps["backend-api"].ingress[0].fqdn}"
+}
+
+output "backend_api_foundry_access_client_id" {
+  description = "Backend API dedicated UAMI client ID for Foundry access — set as ENTRA_BACKEND_API_FOUNDRY_ACCESS_CLIENT_ID in .env"
+  value       = azurerm_user_assigned_identity.backend_api.client_id
+}

@@ -68,8 +68,12 @@ resource "azurerm_container_app" "apps" {
   }
 
   identity {
-    type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.container_apps.id]
+    type = "UserAssigned"
+    identity_ids = compact([
+      azurerm_user_assigned_identity.container_apps.id,
+      # Backend API additionally needs the Foundry access UAMI
+      each.key == "backend-api" ? azurerm_user_assigned_identity.backend_api.id : "",
+    ])
   }
 
   template {

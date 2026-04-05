@@ -48,3 +48,15 @@ resource "azurerm_role_assignment" "acr_for_container_apps" {
   role_definition_name = each.key
   scope                = azurerm_container_registry.this.id
 }
+
+# Backend API UAMI -> Foundry Account (Agent invocation)
+#   The Backend API invokes the Hosted Agent via OpenAI Responses API.
+#   Requires Cognitive Services User on the Foundry Account scope.
+#   Uses a dedicated UAMI with AZURE_CLIENT_ID set in the Container App env.
+#   Role Definitions: local.roles_backend_api_to_foundry_account @main.rbac.definitions.tf
+resource "azurerm_role_assignment" "foundry_account_for_backend_api" {
+  for_each             = local.roles_backend_api_to_foundry_account
+  principal_id         = azurerm_user_assigned_identity.backend_api.principal_id
+  role_definition_name = each.key
+  scope                = azurerm_cognitive_account.this.id
+}
