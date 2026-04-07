@@ -42,9 +42,9 @@ try:
     print("[BOOT] DefaultAzureCredential imported", flush=True)
 
     from tools.autonomous_app import call_resource_api_autonomous_app  # noqa: E402
+    from tools.autonomous_user import call_resource_api_autonomous_user  # noqa: E402
     from tools.debug import check_agent_environment  # noqa: E402
 
-    # from tools.autonomous_user import call_resource_api_autonomous_user  # noqa: E402
     # from tools.token_exchange import try_t1_token_acquisition  # noqa: E402
 
     print("[BOOT] tools imported", flush=True)
@@ -52,7 +52,7 @@ try:
     # Build lookup tables for tool dispatch
     _TOOL_FUNCS = [
         call_resource_api_autonomous_app,
-        # call_resource_api_autonomous_user,
+        call_resource_api_autonomous_user,
         check_agent_environment,
     ]
     _TOOL_NAMES = {fn.name if hasattr(fn, "name") else fn.__name__ for fn in _TOOL_FUNCS}

@@ -41,15 +41,12 @@ class AgentConfig:
     agent_identity_oid: str = field(
         default_factory=lambda: _require_env("ENTRA_AGENT_IDENTITY_CLIENT_ID")
     )
-    agent_user_upn: str = field(
-        default_factory=lambda: os.getenv("ENTRA_AGENT_ID_USER_UPN", "")
-        # default_factory=lambda: _require_env("ENTRA_AGENT_ID_USER_UPN")
-    )
+    agent_user_upn: str = field(default_factory=lambda: _require_env("ENTRA_AGENT_ID_USER_UPN"))
 
     # Resource API
     resource_api_url: str = field(default_factory=lambda: _require_env("RESOURCE_API_URL"))
     resource_api_client_id: str = field(
-        default_factory=lambda: os.getenv("ENTRA_RESOURCE_API_CLIENT_ID", "")
+        default_factory=lambda: _require_env("ENTRA_RESOURCE_API_CLIENT_ID")
     )
     resource_api_scope: str = field(
         default_factory=lambda: _require_env("ENTRA_RESOURCE_API_SCOPE")

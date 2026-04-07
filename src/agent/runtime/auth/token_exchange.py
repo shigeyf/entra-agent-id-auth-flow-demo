@@ -1,7 +1,12 @@
 """Token exchange functions for Entra Agent ID flows.
 
-Provides get_t1() and exchange_app_token() for the Autonomous App flow.
-HTTP parameters are based on the verified try_t1_token_acquisition() results.
+Provides:
+  - get_t1()             — Project MI → T1 (common to all flows)
+  - exchange_app_token() — T1 → TR (app-only, Autonomous App flow)
+  - exchange_user_t2()   — T1 → T2 (Agent Identity exchange token, Autonomous User flow)
+  - exchange_user_token() — T1 + T2 + username → TR (delegated, Autonomous User flow)
+
+HTTP parameters are based on the official Microsoft protocol documentation.
 """
 
 import base64
@@ -97,6 +102,101 @@ def exchange_app_token(t1: str) -> dict:
         "grant_type": "client_credentials",
         "client_assertion_type": _JWT_BEARER,
         "client_assertion": t1,
+    }
+
+    resp = requests.post(_TOKEN_URL, data=payload, timeout=_TIMEOUT)
+    body = resp.json()
+
+    if resp.status_code == 200:
+        tr = body.get("access_token", "")
+        return {
+            "success": True,
+            "access_token": tr,
+            "claims": _decode_jwt_claims(tr) if tr else {},
+        }
+
+    return {
+        "success": False,
+        "error": body.get("error", "unknown"),
+        "error_description": body.get("error_description", "N/A"),
+        "error_codes": body.get("error_codes", []),
+    }
+
+
+def exchange_user_t2(t1: str) -> dict:
+    """Exchange T1 for T2 (Agent Identity exchange token) using client_credentials.
+
+    This is Step 2 of the Autonomous User flow.
+    Entra ID validates that T1.aud == Agent Identity Blueprint.
+
+    Args:
+        t1: The T1 access token obtained from get_t1().
+
+    Returns a dict with keys:
+      - "success": bool
+      - "access_token": str (T2 token, only on success)
+      - "claims": dict (decoded T2 claims, only on success)
+      - "error": str (only on failure)
+      - "error_description": str (only on failure)
+    """
+    payload = {
+        "client_id": config.agent_identity_oid,
+        "scope": _TOKEN_EXCHANGE_SCOPE,
+        "client_assertion_type": _JWT_BEARER,
+        "client_assertion": t1,
+        "grant_type": "client_credentials",
+    }
+
+    resp = requests.post(_TOKEN_URL, data=payload, timeout=_TIMEOUT)
+    body = resp.json()
+
+    if resp.status_code == 200:
+        t2 = body.get("access_token", "")
+        return {
+            "success": True,
+            "access_token": t2,
+            "claims": _decode_jwt_claims(t2) if t2 else {},
+        }
+
+    return {
+        "success": False,
+        "error": body.get("error", "unknown"),
+        "error_description": body.get("error_description", "N/A"),
+        "error_codes": body.get("error_codes", []),
+    }
+
+
+def exchange_user_token(t1: str, t2: str, username: str) -> dict:
+    """Exchange T1 + T2 for TR (delegated resource token) via user_fic grant.
+
+    This is Step 3 of the Autonomous User flow (Agent User Impersonation).
+    Uses the ``user_fic`` grant type with ``user_federated_identity_credential``
+    as defined in the official Entra Agent ID protocol:
+    https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/agent-user-oauth-flow
+
+    The resulting TR is a **delegated** token with the Agent User as the subject.
+
+    Args:
+        t1: The T1 access token (client_assertion).
+        t2: The T2 access token (user_federated_identity_credential).
+        username: The Agent User UPN (e.g. agentuser@contoso.com).
+
+    Returns a dict with keys:
+      - "success": bool
+      - "access_token": str (TR token, only on success)
+      - "claims": dict (decoded TR claims, only on success)
+      - "error": str (only on failure)
+      - "error_description": str (only on failure)
+    """
+    payload = {
+        "client_id": config.agent_identity_oid,
+        "scope": config.resource_api_scope,
+        "grant_type": "user_fic",
+        "client_assertion_type": _JWT_BEARER,
+        "client_assertion": t1,
+        "user_federated_identity_credential": t2,
+        "username": username,
+        "requested_token_use": "on_behalf_of",
     }
 
     resp = requests.post(_TOKEN_URL, data=payload, timeout=_TIMEOUT)
