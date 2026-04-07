@@ -46,6 +46,41 @@ function hasStepKeys(obj: any): boolean {
   );
 }
 
+export type CallerType = "Human User" | "Agent User" | "Agent Application";
+
+/**
+ * Determine the caller type from the Identity Echo API response.
+ * - "Human User"        — delegated token whose UPN matches the logged-in user
+ * - "Agent User"         — delegated token whose UPN differs from the logged-in user (OBO)
+ * - "Agent Application"  — app_only token (client credentials)
+ *
+ * @param callerData  Identity Echo API response body
+ * @param loginUpn    UPN of the currently logged-in user (accounts[0].username)
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getCallerType(callerData: any, loginUpn?: string): CallerType | null {
+  const tokenKind = callerData?.caller?.tokenKind;
+  if (!tokenKind) return null;
+  if (tokenKind === "app_only") return "Agent Application";
+  // delegated — compare UPN
+  const callerUpn = (callerData?.caller?.upn ?? "").toLowerCase();
+  const currentUpn = (loginUpn ?? "").toLowerCase();
+  if (currentUpn && callerUpn === currentUpn) return "Human User";
+  if (currentUpn && callerUpn !== currentUpn) return "Agent User";
+  // loginUpn not available — fall back to unknown delegated
+  return callerUpn ? "Human User" : null;
+}
+
+/** Return a CSS modifier class for the caller type badge. */
+export function callerTypeCssClass(type: CallerType | null): string {
+  switch (type) {
+    case "Human User":        return "badge-caller-human";
+    case "Agent User":         return "badge-caller-agent";
+    case "Agent Application":  return "badge-caller-app";
+    default:                   return "";
+  }
+}
+
 /** Check if the tool output contains token chain data (step1/step2/step3). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isTokenChainData(toolOutput: any): boolean {

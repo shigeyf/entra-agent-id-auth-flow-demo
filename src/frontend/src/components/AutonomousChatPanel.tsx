@@ -261,7 +261,14 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
                 (msg.role === "assistant" &&
                 streaming &&
                 i === messages.length - 1 ? (
-                  <span className="chat-typing">応答中…</span>
+                  <span className="chat-typing">
+                    応答中
+                    <span className="chat-typing-dots">
+                      <span className="chat-typing-dot" />
+                      <span className="chat-typing-dot" />
+                      <span className="chat-typing-dot" />
+                    </span>
+                  </span>
                 ) : null)}
             </div>
           </div>

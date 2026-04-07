@@ -277,6 +277,7 @@ header h1 {
 /* ===== Agent Result Section (outside chat panel) ===== */
 .agent-result-section {
   margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -342,6 +343,32 @@ header h1 {
 .badge-ready {
   background: #d4edda;
   color: #155724;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-caller-type {
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-caller-human {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.badge-caller-agent {
+  background: #ffecd2;
+  color: #8a4b08;
+}
+
+.badge-caller-app {
+  background: #e8daef;
+  color: #4a235a;
 }
 
 .badge-error {
@@ -510,6 +537,44 @@ header h1 {
 .chat-typing {
   color: #999;
   font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.chat-typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+}
+
+.chat-typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #999;
+  animation: chat-dot-wave 1.4s ease-in-out infinite;
+}
+
+.chat-typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.chat-typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes chat-dot-wave {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
 }
 
 .chat-tool-output {
