@@ -15,13 +15,14 @@ router = APIRouter(prefix="/api/demo", tags=["demo"])
 
 class AgentRequest(BaseModel):
     message: str = "Call the resource API using the autonomous app flow."
+    force_tool: str | None = None
 
 
 @router.post("/autonomous/app")
 def autonomous_app(body: AgentRequest):
     """Invoke the Hosted Agent with the user's message (Autonomous App flow)."""
     try:
-        result = invoke_agent(body.message)
+        result = invoke_agent(body.message, force_tool=body.force_tool)
     except Exception:
         logger.exception("Failed to invoke Hosted Agent")
         raise HTTPException(status_code=502, detail="Hosted Agent invocation failed") from None
@@ -37,7 +38,7 @@ def autonomous_app_stream(body: AgentRequest):
     parser.
     """
     return StreamingResponse(
-        invoke_agent_stream(body.message),
+        invoke_agent_stream(body.message, force_tool=body.force_tool),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

@@ -24,23 +24,30 @@ _project = AIProjectClient(
 _openai = _project.get_openai_client()
 
 
-def invoke_agent(message: str) -> dict:
+def invoke_agent(message: str, *, force_tool: str | None = None) -> dict:
     """Send *message* to the Hosted Agent and return the parsed result.
 
     Returns a dict with ``agent_message`` (LLM text) and optionally
     ``tool_output`` (parsed JSON from function_call_output items).
+
+    If *force_tool* is given it is forwarded as ``metadata.force_tool``
+    so that the Hosted Agent restricts available tools to just that one.
     """
     agent = _project.agents.get(agent_name=FOUNDRY_AGENT_NAME)
+
+    extra_body: dict = {
+        "agent_reference": {
+            "name": agent.name,
+            "type": "agent_reference",
+        }
+    }
+    if force_tool:
+        extra_body["metadata"] = {"force_tool": force_tool}
 
     response = _openai.responses.create(
         input=[{"role": "user", "content": message}],
         store=False,
-        extra_body={
-            "agent_reference": {
-                "name": agent.name,
-                "type": "agent_reference",
-            }
-        },
+        extra_body=extra_body,
         timeout=180,
     )
 
@@ -66,7 +73,7 @@ def invoke_agent(message: str) -> dict:
     return result
 
 
-def invoke_agent_stream(message: str) -> Iterator[str]:
+def invoke_agent_stream(message: str, *, force_tool: str | None = None) -> Iterator[str]:
     """Send *message* to the Hosted Agent and yield SSE-formatted lines.
 
     Each yielded string is a complete SSE frame::
@@ -80,16 +87,20 @@ def invoke_agent_stream(message: str) -> Iterator[str]:
     """
     agent = _project.agents.get(agent_name=FOUNDRY_AGENT_NAME)
 
+    extra_body: dict = {
+        "agent_reference": {
+            "name": agent.name,
+            "type": "agent_reference",
+        }
+    }
+    if force_tool:
+        extra_body["metadata"] = {"force_tool": force_tool}
+
     stream = _openai.responses.create(
         input=[{"role": "user", "content": message}],
         store=False,
         stream=True,
-        extra_body={
-            "agent_reference": {
-                "name": agent.name,
-                "type": "agent_reference",
-            }
-        },
+        extra_body=extra_body,
         timeout=180,
     )
 
