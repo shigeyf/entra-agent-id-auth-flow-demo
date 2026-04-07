@@ -22,6 +22,14 @@ const CallerInfo: React.FC<CallerInfoProps> = ({ data, loading, error }) => {
 
   const { caller, humanReadable, resource, accessedAt } = data;
 
+  if (!caller) {
+    return (
+      <div className="caller-info error">
+        レスポンスに caller 情報が含まれていません。
+      </div>
+    );
+  }
+
   return (
     <div className="caller-info">
       <h3>リソース API レスポンス</h3>

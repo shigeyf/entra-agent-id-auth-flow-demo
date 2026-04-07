@@ -301,8 +301,55 @@ header h1 {
   color: #666;
   font-size: 0.85rem;
   margin-top: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   font-family: monospace;
+}
+
+/* ===== Tool Selector ===== */
+.tool-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.tool-selector-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.tool-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 16px;
+  background: #fff;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #444;
+}
+
+.tool-btn:hover:not(:disabled) {
+  border-color: #0078d4;
+  color: #0078d4;
+}
+
+.tool-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tool-btn-active {
+  border-color: #0078d4;
+  background: #0078d4;
+  color: #fff;
+}
+
+.tool-btn-active:hover:not(:disabled) {
+  background: #106ebe;
+  color: #fff;
 }
 
 .chat-messages {

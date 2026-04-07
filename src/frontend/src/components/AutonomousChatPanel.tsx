@@ -7,6 +7,30 @@ import {
 const DEFAULT_MESSAGE =
   "Please call the resource API using autonomous agent app flow.";
 
+/** Available agent tools for the Autonomous Agent App tab. */
+const TOOL_OPTIONS = [
+  {
+    value: "",
+    label: "Auto",
+    description: "LLM がメッセージ内容からツールを自動選択",
+    defaultMessage: "Please call the resource API using autonomous agent app flow.",
+  },
+  {
+    value: "call_resource_api_autonomous_app",
+    label: "Autonomous Agent App",
+    description: "Call Identity Echo API with Entra Agent Identity (App)",
+    defaultMessage: "Call the resource API using autonomous agent app flow.",
+  },
+  {
+    value: "check_agent_environment",
+    label: "Check Environment",
+    description: "Check the agent runtime environment and Azure credentials",
+    defaultMessage: "Check the agent runtime environment and Azure credentials.",
+  },
+] as const;
+
+type ToolOptionValue = (typeof TOOL_OPTIONS)[number]["value"];
+
 interface AutonomousChatPanelProps {
   /** Called when tool_output is received from the agent. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,6 +47,9 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
   const [input, setInput] = useState(DEFAULT_MESSAGE);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTool, setSelectedTool] = useState<ToolOptionValue>(
+    TOOL_OPTIONS[0].value,  // "" = Auto
+  );
   const abortRef = useRef<AbortController | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -91,10 +118,12 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
     const assistantMsg: ChatMessage = { role: "assistant", content: "" };
     setMessages((prev) => [...prev, assistantMsg]);
 
-    const controller = runAutonomousAppStream(trimmed, {
-      onDelta: (text) => {
-        scheduleDeltaFlush(text);
-      },
+    const controller = runAutonomousAppStream(
+      trimmed,
+      {
+        onDelta: (text) => {
+          scheduleDeltaFlush(text);
+        },
       onText: (text) => {
         // Full text fallback — flush any pending, then set full text
         flushPendingText();
@@ -131,10 +160,12 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
         setError(err);
         setStreaming(false);
       },
-    });
+    },
+    selectedTool,
+  );
 
     abortRef.current = controller;
-  }, [input, streaming, onToolOutput, onStreamComplete, scheduleDeltaFlush, flushPendingText]);
+  }, [input, streaming, selectedTool, onToolOutput, onStreamComplete, scheduleDeltaFlush, flushPendingText]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -150,16 +181,37 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
 
   return (
     <div className="chat-panel">
-      <h3>Autonomous App Flow</h3>
+      <h3>Autonomous Agent Flow</h3>
       <p className="chat-description">
         Backend API (MSI) → Foundry Hosted Agent (Agent Identity) → Identity Echo API
       </p>
+
+      {/* Tool selection buttons */}
+      <div className="tool-selector">
+        <span className="tool-selector-label">Tool:</span>
+        {TOOL_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            className={`tool-btn ${
+              selectedTool === opt.value ? "tool-btn-active" : ""
+            }`}
+            onClick={() => {
+              setSelectedTool(opt.value);
+              setInput(opt.defaultMessage);
+            }}
+            disabled={streaming}
+            title={opt.description}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
 
       {/* Chat messages */}
       <div className="chat-messages">
         {messages.length === 0 && (
           <div className="chat-empty">
-            メッセージを送信して Autonomous App Flow を実行します。
+            メッセージを送信して Autonomous Agent Flow を実行します。
           </div>
         )}
 

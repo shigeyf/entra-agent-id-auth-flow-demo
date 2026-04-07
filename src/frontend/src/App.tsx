@@ -17,15 +17,15 @@ import { extractCallerInfo, extractTokenChainLogs, isTokenChainData, isTokenChai
 import AutonomousChatPanel from "./components/AutonomousChatPanel";
 import "./App.css";
 
-type ScenarioTab = "autonomous-app" | "identity-echo-debug";
+type ScenarioTab = "autonomous-agent" | "identity-echo-debug";
 
 function App() {
   const { instance, accounts } = useMsal();
   //const isAuthenticated = useIsAuthenticated();
 
-  const [activeTab, setActiveTab] = useState<ScenarioTab>("autonomous-app");
+  const [activeTab, setActiveTab] = useState<ScenarioTab>("autonomous-agent");
 
-  // Autonomous App flow — tool output displayed outside chat panel
+  // Autonomous Agent flow — tool output displayed outside chat panel
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [agentToolOutput, setAgentToolOutput] = useState<any | null>(null);
   const [streamCompleted, setStreamCompleted] = useState(false);
@@ -118,21 +118,21 @@ function App() {
         {/* Scenario tabs */}
         <nav className="scenario-tabs">
           <button
-            className={`tab ${activeTab === "autonomous-app" ? "active" : ""}`}
-            onClick={() => setActiveTab("autonomous-app")}
+            className={`tab ${activeTab === "autonomous-agent" ? "active" : ""}`}
+            onClick={() => setActiveTab("autonomous-agent")}
           >
-            Autonomous App Flow
+            [Entra Agent ID] Autonomous Agent Flow
           </button>
           <button
             className={`tab ${activeTab === "identity-echo-debug" ? "active" : ""}`}
             onClick={() => setActiveTab("identity-echo-debug")}
           >
-            Identity Echo (Debug)
+            [No Entra Agent ID] Identity Echo (Debug)
           </button>
         </nav>
 
         {/* Autonomous App Flow — no login required */}
-        {activeTab === "autonomous-app" && (
+        {activeTab === "autonomous-agent" && (
           <>
             <AutonomousChatPanel
               onToolOutput={handleToolOutput}
@@ -163,7 +163,7 @@ function App() {
                     </div>
                   ) : (
                     <div className="result-placeholder">
-                      エージェントが Autonomous App Flow を実行すると、Token Chain の結果がここに表示されます。
+                      エージェントが Autonomous Agent Flow を実行すると、Token Chain の結果がここに表示されます。
                     </div>
                   )}
                 </div>
@@ -199,7 +199,7 @@ function App() {
                     </div>
                   ) : (
                     <div className="result-placeholder">
-                      エージェントが Autonomous App Flow を実行すると、リソース API のレスポンスがここに表示されます。
+                      エージェントが Autonomous Agent Flow を実行すると、リソース API のレスポンスがここに表示されます。
                     </div>
                   )}
                 </div>

@@ -2,11 +2,15 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function extractCallerInfo(toolOutput: any): any | null {
   // New format: outputs contains the caller info directly
-  if (toolOutput?.outputs) {
+  if (toolOutput?.outputs?.caller) {
     return toolOutput.outputs;
   }
   // Legacy format
-  return toolOutput?.step3_call_resource_api?.body ?? null;
+  const body = toolOutput?.step3_call_resource_api?.body;
+  if (body?.caller) {
+    return body;
+  }
+  return null;
 }
 
 /** Extract the token chain logs from the agent's tool output. */

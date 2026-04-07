@@ -24,11 +24,11 @@ interface TokenChainStepsProps {
 const stepLabels: Record<string, { label: string; description: string }> = {
   step1_get_t1: {
     label: "T1 取得",
-    description: "Project MSI → Agent Identity Token (T1)",
+    description: "Project MSI → Agent Blueprint Identity Token (T1)",
   },
   step2_exchange_app_token: {
     label: "TR 取得",
-    description: "T1 → Resource Token (TR) via client_credentials",
+    description: "T1 → Agent Identity Token (TR) via client_credentials for resource API access",
   },
   step3_call_resource_api: {
     label: "API 呼び出し",

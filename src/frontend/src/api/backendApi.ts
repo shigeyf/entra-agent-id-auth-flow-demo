@@ -24,20 +24,28 @@ export interface StreamCallbacks {
 }
 
 /**
- * Invoke the Autonomous App flow via SSE streaming.
+ * Invoke the Autonomous Agent App flow via SSE streaming.
  * No auth token is required — Backend API uses its own MSI.
+ *
+ * @param forceTool - Optional tool name to force (e.g. "call_resource_api_autonomous_app").
  */
 export function runAutonomousAppStream(
   message: string,
   callbacks: StreamCallbacks,
+  forceTool?: string,
 ): AbortController {
   const controller = new AbortController();
   const ctx = { receivedDelta: false };
 
+  const body: Record<string, unknown> = { message };
+  if (forceTool) {
+    body.force_tool = forceTool;
+  }
+
   fetch(`${backendApiUrl}/api/demo/autonomous/app/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(body),
     signal: controller.signal,
   })
     .then(async (response) => {
