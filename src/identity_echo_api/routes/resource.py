@@ -5,70 +5,52 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends
 
 from identity_echo_api.auth.token_validator import validate_token
-from identity_echo_api.config import AGENT_USER_UPN
 
 router = APIRouter()
 
 
-def _determine_caller_type(claims: dict, agent_user_upn: str) -> str:
+def _determine_token_kind(claims: dict) -> str:
     has_scp = bool(claims.get("scp"))
     if not has_scp:
         return "app_only"
-    upn = claims.get("upn") or claims.get("preferred_username", "")
-    if agent_user_upn and upn.lower() == agent_user_upn.lower():
-        return "delegated_agent_user"
-    return "delegated_human_user"
+    return "delegated"
 
 
 def _build_caller_response(claims: dict) -> dict:
-    caller_type = _determine_caller_type(claims, AGENT_USER_UPN)
+    caller_type = _determine_token_kind(claims)
 
     scp = claims.get("scp", "")
     scopes = scp.split() if scp else []
     roles = claims.get("roles", [])
-    token_kind = "delegated" if scopes else "application"
 
     upn = claims.get("upn") or claims.get("preferred_username", "")
 
     caller = {
-        "callerType": caller_type,
-        "tokenKind": token_kind,
+        "tokenKind": caller_type,
         "oid": claims.get("oid", ""),
-        "sub": claims.get("sub", ""),
         "upn": upn,
         "displayName": claims.get("name", ""),
         "appId": claims.get("azp", claims.get("appid", "")),
-        "appDisplayName": claims.get("app_displayname", ""),
         "scopes": scopes,
         "roles": roles,
-        "issuer": claims.get("iss", ""),
-        "issuedAt": claims.get("iat", ""),
-        "expiresAt": claims.get("exp", ""),
     }
 
     # Human-readable summary
     caller_display = caller["upn"] or caller["displayName"] or caller["oid"]
-    if caller_type == "delegated_human_user":
+    if caller_type == "delegated":
         scope_str = ", ".join(scopes) if scopes else "なし"
-        human_readable = (
-            f"{caller_display} の委任権限 ({scope_str}) でアクセスされました"
-        )
-    elif caller_type == "delegated_agent_user":
-        scope_str = ", ".join(scopes) if scopes else "なし"
-        human_readable = (
-            f"Agent User {caller_display} の委任権限 ({scope_str}) でアクセスされました"
-        )
+        human_readable = f"{caller_display} の委任権限 ({scope_str}) でアクセスされました"
     else:
         role_str = ", ".join(roles) if roles else "なし"
         human_readable = (
-            f"アプリケーション権限 ({role_str}) でアクセスされました"
-            f" (OID: {caller['oid']})"
+            f"アプリケーション権限 ({role_str}) でアクセスされました (OID: {caller['oid']})"
         )
 
     return {
         "resource": "Demo Protected Resource",
         "accessedAt": datetime.now(UTC).isoformat(),
         "caller": caller,
+        "accessToken": claims,
         "humanReadable": human_readable,
     }
 
