@@ -21,6 +21,7 @@
 import argparse
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from dotenv import dotenv_values
@@ -109,6 +110,7 @@ def update_container_app(resource_group: str, acr_login_server: str, app_key: st
 
     ca_name = result.stdout.strip().split("\n")[0]
     image = f"{acr_login_server}/{app['image_name']}:latest"
+    revision_suffix = f"v{int(time.time())}"
 
     run_cmd(
         [
@@ -121,8 +123,10 @@ def update_container_app(resource_group: str, acr_login_server: str, app_key: st
             resource_group,
             "--image",
             image,
+            "--revision-suffix",
+            revision_suffix,
         ],
-        f"Updating Container App {ca_name}",
+        f"Updating Container App {ca_name} (revision: {revision_suffix})",
     )
 
 
