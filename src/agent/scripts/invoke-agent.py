@@ -136,7 +136,7 @@ def _build_input(args: argparse.Namespace) -> "str | list":
     return data
 
 
-def invoke(agent_input: "str | list") -> None:
+def invoke(agent_input: "str | list", args: argparse.Namespace) -> None:
     # ---- Load .env files (recursive) ----
     print("Loading .env ...")
     _load_env(_PROJECT_ROOT)
@@ -171,15 +171,21 @@ def invoke(agent_input: "str | list") -> None:
 
     print(f"[input] {json.dumps(input_payload, ensure_ascii=False)}", file=sys.stderr)
 
+    extra = {
+        "agent_reference": {
+            "name": agent.name,
+            "type": "agent_reference",
+        }
+    }
+    # Pass force_tool via metadata so the agent can set tool_choice deterministically
+    if args.tool:
+        extra["metadata"] = {"force_tool": args.tool}
+        print(f"[force_tool] {args.tool}", file=sys.stderr)
+
     response = openai_client.responses.create(
         input=input_payload,
         store=False,
-        extra_body={
-            "agent_reference": {
-                "name": agent.name,
-                "type": "agent_reference",
-            }
-        },
+        extra_body=extra,
         timeout=180,
     )
 
@@ -225,5 +231,10 @@ if __name__ == "__main__":
         help="Path to a JSON file containing the full input array "
         '(e.g. [{"role":"user","content":"..."}])',
     )
+    parser.add_argument(
+        "-t",
+        "--tool",
+        help="Force the agent to call this specific tool (passed via metadata.force_tool)",
+    )
     args = parser.parse_args()
-    invoke(_build_input(args))
+    invoke(_build_input(args), args)

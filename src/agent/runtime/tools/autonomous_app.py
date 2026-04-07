@@ -1,4 +1,4 @@
-"""Autonomous App flow tool — T1 → TR (app-only) → Identity Echo API."""
+"""Autonomous Agent (App) flow tool — T1 → TR (app-only) → Identity Echo API."""
 
 import json
 
@@ -9,10 +9,10 @@ from config import config
 
 
 def _run_autonomous_app() -> str:
-    """Implementation of the Autonomous App flow."""
+    """Implementation of the Autonomous Agent (App) flow."""
     result: dict = {
         "name": "call_resource_api_autonomous_app",
-        "description": "Call Identity Echo API using the Agent Identity Autonomous App flow.",
+        "description": "Call Identity Echo API with Agent Identity Autonomous Agent (App) flow.",
         "outputs": {},
         "logs": {
             "step1_get_t1": {},
@@ -25,12 +25,7 @@ def _run_autonomous_app() -> str:
     t1_result = get_t1()
     result["logs"]["step1_get_t1"] = {
         "success": t1_result["success"],
-        "claims": {
-            k: t1_result.get("claims", {}).get(k, "N/A")
-            for k in ("aud", "sub", "oid", "appid", "idtyp")
-        }
-        if t1_result["success"]
-        else None,
+        "claims": t1_result.get("claims") if t1_result["success"] else None,
         "error": t1_result.get("error"),
     }
 
@@ -41,12 +36,7 @@ def _run_autonomous_app() -> str:
     tr_result = exchange_app_token(t1_result["access_token"])
     result["logs"]["step2_exchange_app_token"] = {
         "success": tr_result["success"],
-        "claims": {
-            k: tr_result.get("claims", {}).get(k, "N/A")
-            for k in ("aud", "sub", "oid", "appid", "idtyp", "roles")
-        }
-        if tr_result["success"]
-        else None,
+        "claims": tr_result.get("claims") if tr_result["success"] else None,
         "error": tr_result.get("error"),
         "error_description": tr_result.get("error_description"),
     }
@@ -83,7 +73,10 @@ def _run_autonomous_app() -> str:
     return json.dumps(result, indent=2, ensure_ascii=False)
 
 
-@tool
+@tool(
+    name="call_resource_api_autonomous_app",
+    description="Call Identity Echo API using the Agent Identity Autonomous Agent (App) flow.",
+)
 def call_resource_api_autonomous_app() -> str:
     """Call Identity Echo API using the Agent Identity Autonomous App flow.
 

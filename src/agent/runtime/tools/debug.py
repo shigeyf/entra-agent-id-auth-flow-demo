@@ -96,7 +96,10 @@ def _run_env_check() -> str:
     )
 
 
-@tool
+@tool(
+    name="check_agent_environment",
+    description="Check the agent runtime environment (for debugging).",
+)
 def check_agent_environment() -> str:
     """Check the agent runtime environment (for debugging).
 

@@ -5,9 +5,14 @@ Locally: `python -m agent.main` or `python src/agent/main.py`
 Foundry: The container CMD invokes this file directly.
 """
 
+import logging
 import os
 import sys
 import traceback
+
+# Use the same logger namespace as the hosting adapter so output
+# appears in ``az cognitiveservices agent logs show`` and App Insights.
+logger = logging.getLogger("azure.ai.agentserver.agent")
 
 print("[BOOT] main.py starting", flush=True)
 print(f"[BOOT] Python {sys.version}", flush=True)
@@ -38,9 +43,73 @@ try:
 
     from tools.autonomous_app import call_resource_api_autonomous_app  # noqa: E402
     from tools.debug import check_agent_environment  # noqa: E402
+
+    # from tools.autonomous_user import call_resource_api_autonomous_user  # noqa: E402
     # from tools.token_exchange import try_t1_token_acquisition  # noqa: E402
 
     print("[BOOT] tools imported", flush=True)
+
+    # Build lookup tables for tool dispatch
+    _TOOL_FUNCS = [
+        call_resource_api_autonomous_app,
+        # call_resource_api_autonomous_user,
+        check_agent_environment,
+    ]
+    _TOOL_NAMES = {fn.name if hasattr(fn, "name") else fn.__name__ for fn in _TOOL_FUNCS}
+    _TOOL_BY_NAME = {(fn.name if hasattr(fn, "name") else fn.__name__): fn for fn in _TOOL_FUNCS}
+
+    class ToolDispatchAgent(Agent):
+        """Agent subclass that reads ``force_tool`` from the request metadata
+        (set by the hosting adapter as ``_request_headers``) and forces
+        the model to call exactly that tool.
+
+        The Hosted Agent adapter sets ``self._request_headers`` from the
+        request's ``metadata`` field **before** calling ``run()``, so we can
+        read it here reliably.
+
+        Approach: when ``force_tool`` is present, pass ``tools=[forced_tool]``
+        to ``super().run()`` so the model only sees a single tool.  Combined
+        with instructions that mandate tool calling, this effectively forces
+        the desired tool without using ``tool_choice`` (which causes the
+        Agents Threads/Runs backend to hang — server-side issue).
+
+        Usage — send ``metadata.force_tool`` in the Responses API request::
+
+            {"input": "...", "metadata": {"force_tool": "check_agent_environment"}}
+        """
+
+        def run(
+            self, messages=None, *, stream=False, session=None, tools=None, options=None, **kwargs
+        ):
+            # _request_headers is set by the hosting adapter from request metadata
+            force_tool = getattr(self, "_request_headers", {}).get("force_tool")
+            logger.info("[DISPATCH] _request_headers=%s", getattr(self, "_request_headers", {}))
+
+            if force_tool and force_tool in _TOOL_NAMES:
+                # Restrict default_options["tools"] to just the forced tool.
+                # _prepare_session_and_messages() deep-copies default_options at
+                # the start of execution, so only THIS request's copy is affected.
+                # The Hosted Agent adapter is single-threaded, so mutation is safe.
+                self.default_options["tools"] = [_TOOL_BY_NAME[force_tool]]
+                logger.info(
+                    "[DISPATCH] Restricting tools to [%s] only (single-tool dispatch)",
+                    force_tool,
+                )
+            else:
+                # Restore full tool list for non-forced requests
+                self.default_options["tools"] = list(_TOOL_FUNCS)
+                logger.info("[DISPATCH] Using all tools (auto)")
+
+            return super().run(
+                messages,
+                stream=stream,
+                session=session,
+                tools=tools,
+                options=options,
+                **kwargs,
+            )
+
+    print("[BOOT] ToolDispatchAgent defined", flush=True)
 
     print("[BOOT] Creating AzureAIAgentClient...", flush=True)
     _client = AzureAIAgentClient(
@@ -51,46 +120,22 @@ try:
     print("[BOOT] AzureAIAgentClient created", flush=True)
 
     print("[BOOT] Creating Agent...", flush=True)
-    agent = Agent(
+    agent = ToolDispatchAgent(
         client=_client,
         instructions=(
-            "You are a helpful tool caller agent.\n"
-            "ALWAYS call a tool immediately. Never reply with text only.\n"
-            "Call the tool and report results.\n\n"
-            "Here is the list of tools you need to call to respond user requests:\n\n"
-            "1. `call_resource_api_autonomous_app`: Resourece API access\n"
-            "2. `check_agent_environment`: Check and debug runtime environment and status access\n"
+            "You are a tool caller agent. ALWAYS call exactly one tool per request.\n"
+            "Never reply with text only — you must call a tool.\n"
             "\n"
-            # "You are a caller agent for Identity Echo API (extrernal resource API) "
-            # "using Entra Agent ID\n"
-            # "ALWAYS call a tool immediately. Never reply with text only.\n"
-            # "Call the tool and report results.\n\n"
-            # "This agent has the following tools to respond to user requests.\n"
-            # "Please follow the tool usage instructions and examples "
-            # "to decide which tool to call for each request:\n\n"
-            # "1. `call_resource_api_autonomous_app`: call this tool by default\n"
-            # "    - This tools is used for autonomous agent app flow to call the resource API\n"
-            # "    - Example: `Please call the resource API using autonomous agent app flow`\n"
-            # "    - NOTE: This is the default selection for no message from users "
-            # "or messages without specific keywords "
-            # "(such as `debug`, `check`, `environment`, and `status`)\n"
-            # "2. `check_agent_environment`: call this tool only when recieving user requests, "
-            # "which are including keywords, such as 'debug` `check`, `environment`, and `status`\n"
-            # "    - This tools is used for autonomous agent app flow to call the resource API\n"
-            # "    - Example: `Please help to check the agent environment and status` \n"
-            # "You are a diagnostic agent for Entra Agent ID\n"
-            # "ALWAYS call a tool immediately. Never reply with text only.\n"
-            # "Select the tool based on the user's request:\n"
-            # "- call_resource_api_autonomous_app: for autonomous app flow, resource API calls\n"
-            # "- check_agent_environment: for environment checks, debugging, credential status\n"
-            # "- try_t1_token_acquisition: for T1 token tests, token exchange experiments\n"
-            # "Call the tool and report results.\n"
+            "## Tool dispatch rules\n"
+            "\n"
+            "If the user message does NOT start with `TOOL:`, select the tool\n"
+            "based on keywords:\n"
+            "- Keywords: debug, check, environment, status → call `check_agent_environment`\n"
+            "- Everything else (default) → call `call_resource_api_autonomous_app`\n"
+            "\n"
+            "After calling the tool, report the results to the user.\n"
         ),
-        tools=[
-            call_resource_api_autonomous_app,
-            check_agent_environment,
-            # try_t1_token_acquisition,  # This is just for testing Agent ID T1 token acquisition
-        ],
+        tools=_TOOL_FUNCS,
     )
     print("[BOOT] Agent created", flush=True)
 

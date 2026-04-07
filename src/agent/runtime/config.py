@@ -34,17 +34,17 @@ class AgentConfig:
         default_factory=lambda: _require_env("FOUNDRY_MODEL_DEPLOYMENT_NAME")
     )
 
-    # Entra Agent ID (used in Phase 2 Step B)
+    # Entra Agent ID
     blueprint_client_id: str = field(
         default_factory=lambda: _require_env("ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID")
     )
     agent_identity_oid: str = field(
         default_factory=lambda: _require_env("ENTRA_AGENT_IDENTITY_CLIENT_ID")
     )
-
-    # Autonomous User (used in Phase 4)
-    agent_user_oid: str = field(default_factory=lambda: os.getenv("AGENT_USER_OID", ""))
-    agent_user_upn: str = field(default_factory=lambda: os.getenv("ENTRA_AGENT_ID_USER_UPN", ""))
+    agent_user_upn: str = field(
+        default_factory=lambda: os.getenv("ENTRA_AGENT_ID_USER_UPN", "")
+        # default_factory=lambda: _require_env("ENTRA_AGENT_ID_USER_UPN")
+    )
 
     # Resource API
     resource_api_url: str = field(default_factory=lambda: _require_env("RESOURCE_API_URL"))
