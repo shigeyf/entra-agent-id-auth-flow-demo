@@ -5,10 +5,15 @@ export function extractCallerInfo(toolOutput: any): any | null {
   if (toolOutput?.outputs?.caller) {
     return toolOutput.outputs;
   }
-  // Legacy format
-  const body = toolOutput?.step3_call_resource_api?.body;
-  if (body?.caller) {
-    return body;
+  // Autonomous User flow (step4)
+  const body4 = toolOutput?.step4_call_resource_api?.body;
+  if (body4?.caller) {
+    return body4;
+  }
+  // Autonomous App flow (step3)
+  const body3 = toolOutput?.step3_call_resource_api?.body;
+  if (body3?.caller) {
+    return body3;
   }
   return null;
 }
@@ -33,7 +38,11 @@ function hasStepKeys(obj: any): boolean {
   return (
     "step1_get_t1" in obj ||
     "step2_exchange_app_token" in obj ||
-    "step3_call_resource_api" in obj
+    "step3_call_resource_api" in obj ||
+    // Autonomous User flow keys
+    "step2_exchange_user_t2" in obj ||
+    "step3_exchange_user_token" in obj ||
+    "step4_call_resource_api" in obj
   );
 }
 
@@ -48,6 +57,18 @@ export function isTokenChainData(toolOutput: any): boolean {
 export function isTokenChainSuccess(toolOutput: any): boolean {
   const logs = extractTokenChainLogs(toolOutput);
   if (!logs) return false;
+
+  // Autonomous User flow (4 steps)
+  if (logs.step2_exchange_user_t2) {
+    return (
+      logs.step1_get_t1?.success === true &&
+      logs.step2_exchange_user_t2?.success === true &&
+      logs.step3_exchange_user_token?.success === true &&
+      logs.step4_call_resource_api?.success === true
+    );
+  }
+
+  // Autonomous App flow (3 steps)
   return (
     logs.step1_get_t1?.success === true &&
     logs.step2_exchange_app_token?.success === true &&

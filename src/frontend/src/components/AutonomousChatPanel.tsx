@@ -7,7 +7,7 @@ import {
 const DEFAULT_MESSAGE =
   "Please call the resource API using autonomous agent app flow.";
 
-/** Available agent tools for the Autonomous Agent App tab. */
+/** Available agent tools for the Autonomous Agent tab. */
 const TOOL_OPTIONS = [
   {
     value: "",
@@ -20,6 +20,12 @@ const TOOL_OPTIONS = [
     label: "Autonomous Agent App",
     description: "Call Identity Echo API with Entra Agent Identity (App)",
     defaultMessage: "Call the resource API using autonomous agent app flow.",
+  },
+  {
+    value: "call_resource_api_autonomous_user",
+    label: "Autonomous Agent User",
+    description: "Call Identity Echo API with Entra Agent Identity (User)",
+    defaultMessage: "Call the resource API using autonomous agent user flow.",
   },
   {
     value: "check_agent_environment",
@@ -37,11 +43,14 @@ interface AutonomousChatPanelProps {
   onToolOutput?: (output: any) => void;
   /** Called when the SSE stream completes. */
   onStreamComplete?: () => void;
+  /** Called when the user clears the chat. */
+  onClear?: () => void;
 }
 
 const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
   onToolOutput,
   onStreamComplete,
+  onClear,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState(DEFAULT_MESSAGE);
@@ -179,12 +188,28 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
     setStreaming(false);
   };
 
+  const handleClear = () => {
+    setMessages([]);
+    setError(null);
+    setInput(TOOL_OPTIONS.find((o) => o.value === selectedTool)?.defaultMessage ?? DEFAULT_MESSAGE);
+    onClear?.();
+  };
+
   return (
     <div className="chat-panel">
-      <h3>Autonomous Agent Flow</h3>
-      <p className="chat-description">
-        Backend API (MSI) → Foundry Hosted Agent (Agent Identity) → Identity Echo API
-      </p>
+      <div className="chat-panel-header">
+        <div>
+          <h3>Autonomous Agent Flow</h3>
+          <p className="chat-description">
+            Backend API (MSI) → Foundry Hosted Agent (Agent Identity) → Identity Echo API
+          </p>
+        </div>
+        {messages.length > 0 && !streaming && (
+          <button className="btn btn-secondary btn-sm" onClick={handleClear}>
+            クリア
+          </button>
+        )}
+      </div>
 
       {/* Tool selection buttons */}
       <div className="tool-selector">

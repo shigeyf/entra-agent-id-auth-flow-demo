@@ -1,9 +1,7 @@
 import { useState, useCallback } from "react";
 import {
-  //useIsAuthenticated,
   useMsal,
-  AuthenticatedTemplate,
-  UnauthenticatedTemplate,
+  useIsAuthenticated,
 } from "@azure/msal-react";
 import {
   BrowserAuthError,
@@ -15,13 +13,14 @@ import CallerInfo from "./components/CallerInfo";
 import TokenChainSteps from "./components/TokenChainSteps";
 import { extractCallerInfo, extractTokenChainLogs, isTokenChainData, isTokenChainSuccess } from "./utils/extractAgentToolOutput";
 import AutonomousChatPanel from "./components/AutonomousChatPanel";
+import TopBar from "./components/TopBar";
 import "./App.css";
 
-type ScenarioTab = "autonomous-agent" | "identity-echo-debug";
+type ScenarioTab = "autonomous-agent" | "no-agent";
 
 function App() {
   const { instance, accounts } = useMsal();
-  //const isAuthenticated = useIsAuthenticated();
+  const isAuthenticated = useIsAuthenticated();
 
   const [activeTab, setActiveTab] = useState<ScenarioTab>("autonomous-agent");
 
@@ -44,28 +43,15 @@ function App() {
     setStreamCompleted(true);
   }, []);
 
+  const handleClear = useCallback(() => {
+    setAgentToolOutput(null);
+    setStreamCompleted(false);
+  }, []);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [callerData, setCallerData] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleLogin = useCallback(async () => {
-    try {
-      await instance.loginRedirect(loginRequest);
-    } catch (e) {
-      console.error("Login failed:", e);
-    }
-  }, [instance]);
-
-  const handleLogout = useCallback(async () => {
-    try {
-      await instance.logoutRedirect();
-      setCallerData(null);
-      setError(null);
-    } catch (e) {
-      console.error("Logout failed:", e);
-    }
-  }, [instance]);
 
   const handleCallApi = useCallback(async () => {
     setLoading(true);
@@ -109,11 +95,14 @@ function App() {
 
   return (
     <div className="app">
-      <header>
-        <h1>Entra Agent ID Demo</h1>
-        <p className="subtitle">Entra Agent ID の認証フローを可視化</p>
-      </header>
+      <TopBar />
 
+      <header>
+        <h1>Foundry Hosted Agent + Entra Agent ID Demo</h1>
+        <p className="subtitle">
+          Microsoft Foundry の Hosted Agent が Entra Agent ID の Autonomous Agent フロー（アプリケーション権限）と Agent User OBO フロー（委任権限）の両方で外部 API にアクセスし、アクセストークンの中身や「誰の権限で呼び出されたか」を Identity Echo API で可視化するデモです。
+        </p>
+      </header>
       <main>
         {/* Scenario tabs */}
         <nav className="scenario-tabs">
@@ -121,22 +110,22 @@ function App() {
             className={`tab ${activeTab === "autonomous-agent" ? "active" : ""}`}
             onClick={() => setActiveTab("autonomous-agent")}
           >
-            [Entra Agent ID] Autonomous Agent Flow
+            Autonomous Agent Flow (API call by Foundry Agent)
           </button>
           <button
-            className={`tab ${activeTab === "identity-echo-debug" ? "active" : ""}`}
-            onClick={() => setActiveTab("identity-echo-debug")}
+            className={`tab ${activeTab === "no-agent" ? "active" : ""}`}
+            onClick={() => setActiveTab("no-agent")}
           >
-            [No Entra Agent ID] Identity Echo (Debug)
+            No Agent Flow (Direct API call by login user)
           </button>
         </nav>
 
         {/* Autonomous App Flow — no login required */}
-        {activeTab === "autonomous-agent" && (
-          <>
+        <div style={{ display: activeTab === "autonomous-agent" ? undefined : "none" }}>
             <AutonomousChatPanel
               onToolOutput={handleToolOutput}
               onStreamComplete={handleStreamComplete}
+              onClear={handleClear}
             />
 
             {/* Token chain + CallerInfo — always show frame, accordion closed by default */}
@@ -205,44 +194,35 @@ function App() {
                 </div>
               </details>
             </div>
-          </>
-        )}
+        </div>
 
         {/* Identity Echo Debug — requires login */}
-        {activeTab === "identity-echo-debug" && (
-          <>
-            <UnauthenticatedTemplate>
+        <div style={{ display: activeTab === "no-agent" ? undefined : "none" }}>
+            {!isAuthenticated ? (
               <div className="auth-section">
-                <p>Identity Echo API を呼び出すにはログインしてください。</p>
-                <button onClick={handleLogin} className="btn btn-primary">
-                  ログイン
-                </button>
+                <p>Identity Echo API を呼び出すにはサインインしてください。</p>
               </div>
-            </UnauthenticatedTemplate>
-
-            <AuthenticatedTemplate>
-              <div className="auth-section">
-                <p>
-                  ログイン中: <strong>{accounts[0]?.username}</strong>
-                </p>
-                <div className="button-group">
-                  <button
-                    onClick={handleCallApi}
-                    disabled={loading}
-                    className="btn btn-primary"
-                  >
-                    {loading ? "呼び出し中..." : "Identity Echo API を呼び出す"}
-                  </button>
-                  <button onClick={handleLogout} className="btn btn-secondary">
-                    ログアウト
-                  </button>
+            ) : (
+              <>
+                <div className="auth-section">
+                  <p>
+                    ログイン中: <strong>{accounts[0]?.username}</strong>
+                  </p>
+                  <div className="button-group">
+                    <button
+                      onClick={handleCallApi}
+                      disabled={loading}
+                      className="btn btn-primary"
+                    >
+                      {loading ? "呼び出し中..." : "Identity Echo API を呼び出す"}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <CallerInfo data={callerData} loading={loading} error={error} />
-            </AuthenticatedTemplate>
-          </>
-        )}
+                <CallerInfo data={callerData} loading={loading} error={error} />
+              </>
+            )}
+        </div>
       </main>
     </div>
   );

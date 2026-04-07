@@ -11,37 +11,50 @@ interface StepResult {
   body?: any;
 }
 
-interface TokenChainData {
-  step1_get_t1?: StepResult;
-  step2_exchange_app_token?: StepResult;
-  step3_call_resource_api?: StepResult;
-}
+type TokenChainData = Record<string, StepResult>;
 
 interface TokenChainStepsProps {
   data: TokenChainData;
 }
 
 const stepLabels: Record<string, { label: string; description: string }> = {
+  // Autonomous App flow (3 steps)
   step1_get_t1: {
     label: "T1 取得",
     description: "Project MSI → Agent Blueprint Identity Token (T1)",
   },
   step2_exchange_app_token: {
-    label: "TR 取得",
+    label: "TR 取得 (App)",
     description: "T1 → Agent Identity Token (TR) via client_credentials for resource API access",
   },
   step3_call_resource_api: {
     label: "API 呼び出し",
     description: "Identity Echo API に Bearer TR でアクセス",
   },
+  // Autonomous User flow (4 steps)
+  step2_exchange_user_t2: {
+    label: "T2 取得",
+    description: "T1 → Agent Identity Token (T2) via client_credentials",
+  },
+  step3_exchange_user_token: {
+    label: "TR 取得 (User)",
+    description: "T2 + Agent User UPN → Delegated Token (TR) via user_fic grant",
+  },
+  step4_call_resource_api: {
+    label: "API 呼び出し",
+    description: "Identity Echo API に Bearer TR (delegated) でアクセス",
+  },
 };
 
+/** Derive step keys from data, sorted naturally by prefix (step1, step2, …). */
+function deriveSteps(data: TokenChainData): string[] {
+  return Object.keys(data)
+    .filter((k) => k.startsWith("step"))
+    .sort();
+}
+
 const TokenChainSteps: React.FC<TokenChainStepsProps> = ({ data }) => {
-  const steps = [
-    "step1_get_t1",
-    "step2_exchange_app_token",
-    "step3_call_resource_api",
-  ] as const;
+  const steps = deriveSteps(data);
 
   return (
     <div className="token-chain">
@@ -50,7 +63,7 @@ const TokenChainSteps: React.FC<TokenChainStepsProps> = ({ data }) => {
         {steps.map((key, i) => {
           const step = data[key];
           if (!step) return null;
-          const meta = stepLabels[key];
+          const meta = stepLabels[key] ?? { label: key, description: "" };
 
           return (
             <div key={key} className="token-chain-step">

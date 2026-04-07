@@ -49,12 +49,6 @@ const CallerInfo: React.FC<CallerInfoProps> = ({ data, loading, error }) => {
             <td>{accessedAt}</td>
           </tr>
           <tr>
-            <th>Caller Type</th>
-            <td>
-              <code>{caller.callerType}</code>
-            </td>
-          </tr>
-          <tr>
             <th>Token Kind</th>
             <td>
               <code>{caller.tokenKind}</code>
