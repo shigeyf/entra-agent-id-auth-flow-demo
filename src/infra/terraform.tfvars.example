@@ -20,6 +20,12 @@ target_subscription_id = "your-subscription-id"
 
 
 # ==================================================
+# Static Web App
+# ==================================================
+swa_location = "westeurope"
+
+
+# ==================================================
 # Foundry Resources
 # ==================================================
 
@@ -57,8 +63,9 @@ container_apps = {
     target_port   = 8000
     build_context = "../identity_echo_api"
   }
-  # "backend-api" = {
-  #   image_name  = "backend-api"
-  #   target_port = 8080
-  # }
+  "backend-api" = {
+    image_name    = "backend-api"
+    target_port   = 8000
+    build_context = "../backend_api"
+  }
 }
