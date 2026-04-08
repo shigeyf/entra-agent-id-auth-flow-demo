@@ -1,10 +1,11 @@
 """Token exchange functions for Entra Agent ID flows.
 
 Provides:
-  - get_t1()             — Project MI → T1 (common to all flows)
-  - exchange_app_token() — T1 → TR (app-only, Autonomous App flow)
-  - exchange_user_t2()   — T1 → T2 (Agent Identity exchange token, Autonomous User flow)
-  - exchange_user_token() — T1 + T2 + username → TR (delegated, Autonomous User flow)
+  - get_t1()                    — Project MI → T1 (common to all flows)
+  - exchange_app_token()        — T1 → TR (app-only, Autonomous App flow)
+  - exchange_user_t2()          — T1 → T2 (Agent Identity exchange token, Autonomous User flow)
+  - exchange_user_token()       — T1 + T2 + username → TR (delegated, Autonomous User flow)
+  - exchange_interactive_obo()  — T1 + Tc → TR (delegated, Interactive OBO flow)
 
 HTTP parameters are based on the official Microsoft protocol documentation.
 """
@@ -196,6 +197,55 @@ def exchange_user_token(t1: str, t2: str, username: str) -> dict:
         "client_assertion": t1,
         "user_federated_identity_credential": t2,
         "username": username,
+        "requested_token_use": "on_behalf_of",
+    }
+
+    resp = requests.post(_TOKEN_URL, data=payload, timeout=_TIMEOUT)
+    body = resp.json()
+
+    if resp.status_code == 200:
+        tr = body.get("access_token", "")
+        return {
+            "success": True,
+            "access_token": tr,
+            "claims": _decode_jwt_claims(tr) if tr else {},
+        }
+
+    return {
+        "success": False,
+        "error": body.get("error", "unknown"),
+        "error_description": body.get("error_description", "N/A"),
+        "error_codes": body.get("error_codes", []),
+    }
+
+
+def exchange_interactive_obo(t1: str, tc: str) -> dict:
+    """Exchange T1 + Tc for TR (delegated resource token) via OBO.
+
+    This is the Interactive OBO flow — the resulting TR is a delegated token
+    with the human user as the subject (sub = user OID, upn = user UPN).
+
+    Protocol reference:
+    https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/agent-on-behalf-of-oauth-flow
+
+    Args:
+        t1: The T1 access token obtained from get_t1().
+        tc: The user's access token (aud = Blueprint App ID).
+
+    Returns a dict with keys:
+      - "success": bool
+      - "access_token": str (TR token, only on success)
+      - "claims": dict (decoded TR claims, only on success)
+      - "error": str (only on failure)
+      - "error_description": str (only on failure)
+    """
+    payload = {
+        "client_id": config.agent_identity_oid,
+        "scope": config.resource_api_scope,
+        "client_assertion_type": _JWT_BEARER,
+        "client_assertion": t1,
+        "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        "assertion": tc,
         "requested_token_use": "on_behalf_of",
     }
 

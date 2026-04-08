@@ -41,11 +41,11 @@ try:
 
     print("[BOOT] DefaultAzureCredential imported", flush=True)
 
+    from request_context import set_user_tc  # noqa: E402
     from tools.autonomous_app import call_resource_api_autonomous_app  # noqa: E402
     from tools.autonomous_user import call_resource_api_autonomous_user  # noqa: E402
     from tools.debug import check_agent_environment  # noqa: E402
-
-    # from tools.token_exchange import try_t1_token_acquisition  # noqa: E402
+    from tools.interactive_obo import call_resource_api_interactive_obo  # noqa: E402
 
     print("[BOOT] tools imported", flush=True)
 
@@ -53,6 +53,7 @@ try:
     _TOOL_FUNCS = [
         call_resource_api_autonomous_app,
         call_resource_api_autonomous_user,
+        call_resource_api_interactive_obo,
         check_agent_environment,
     ]
     _TOOL_NAMES = {fn.name if hasattr(fn, "name") else fn.__name__ for fn in _TOOL_FUNCS}
@@ -83,7 +84,28 @@ try:
         ):
             # _request_headers is set by the hosting adapter from request metadata
             force_tool = getattr(self, "_request_headers", {}).get("force_tool")
-            logger.info("[DISPATCH] _request_headers=%s", getattr(self, "_request_headers", {}))
+            # Reassemble user_tc from chunked metadata (user_tc_0, user_tc_1, ...)
+            # metadata values are limited to 512 chars, so Tc is split into 500-char chunks.
+            headers = getattr(self, "_request_headers", {})
+            tc_chunks = []
+            i = 0
+            while True:
+                chunk = headers.get(f"user_tc_{i}")
+                if chunk is None:
+                    break
+                tc_chunks.append(chunk)
+                i += 1
+            user_tc = "".join(tc_chunks) if tc_chunks else None
+            if user_tc:
+                logger.info(
+                    "[DISPATCH] Reassembled user_tc from %d chunk(s), total len=%d",
+                    len(tc_chunks),
+                    len(user_tc),
+                )
+            else:
+                logger.info("[DISPATCH] No user_tc chunks found in metadata")
+            set_user_tc(user_tc)
+            logger.info("[DISPATCH] _request_headers keys=%s", list(headers.keys()))
 
             if force_tool and force_tool in _TOOL_NAMES:
                 # Restrict default_options["tools"] to just the forced tool.
