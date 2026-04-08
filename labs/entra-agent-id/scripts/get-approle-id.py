@@ -39,7 +39,5 @@ for role in sp["appRoles"]:
         print("Saved AGENT_ID_USER_APP_ROLE_ID to .env file.")
         break
 else:
-    print(
-        f"ERROR: appRole '{role_name}' not found in Microsoft Graph service principal."
-    )
+    print(f"ERROR: appRole '{role_name}' not found in Microsoft Graph service principal.")
     sys.exit(1)
