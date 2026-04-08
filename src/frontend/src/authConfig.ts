@@ -26,3 +26,25 @@ export const resourceApiScope =
 export const loginRequest = {
   scopes: [resourceApiScope],
 };
+
+// --- Interactive Agent OBO flow ---
+
+/** Blueprint scope — used to acquire Tc (user token for OBO exchange). */
+const blueprintClientId =
+  import.meta.env.ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID ?? "";
+
+export const blueprintScope = blueprintClientId
+  ? `api://${blueprintClientId}/access_agent`
+  : "";
+
+export const interactiveOboRequest = {
+  scopes: [blueprintScope].filter(Boolean),
+};
+
+/** Foundry API scope — used to call the Foundry Agent API directly from the SPA.
+ * The services.ai.azure.com endpoint expects aud=https://ai.azure.com */
+export const foundryApiScope = "https://ai.azure.com/.default";
+
+export const foundryApiRequest = {
+  scopes: [foundryApiScope],
+};

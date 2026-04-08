@@ -13,10 +13,11 @@ import CallerInfo from "./components/CallerInfo";
 import TokenChainSteps from "./components/TokenChainSteps";
 import { extractCallerInfo, extractTokenChainLogs, isTokenChainData, isTokenChainSuccess, getCallerType, callerTypeCssClass } from "./utils/extractAgentToolOutput";
 import AutonomousChatPanel from "./components/AutonomousChatPanel";
+import InteractiveOboPanel from "./components/InteractiveOboPanel";
 import TopBar from "./components/TopBar";
 import "./App.css";
 
-type ScenarioTab = "autonomous-agent" | "no-agent";
+type ScenarioTab = "autonomous-agent" | "interactive-obo" | "no-agent";
 
 function App() {
   const { instance, accounts } = useMsal();
@@ -46,6 +47,29 @@ function App() {
   const handleClear = useCallback(() => {
     setAgentToolOutput(null);
     setStreamCompleted(false);
+  }, []);
+
+  // Interactive OBO flow — separate state
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [oboToolOutput, setOboToolOutput] = useState<any | null>(null);
+  const [oboStreamCompleted, setOboStreamCompleted] = useState(false);
+
+  const handleOboToolOutput = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (output: any) => {
+      setOboToolOutput(output);
+      setOboStreamCompleted(false);
+    },
+    [],
+  );
+
+  const handleOboStreamComplete = useCallback(() => {
+    setOboStreamCompleted(true);
+  }, []);
+
+  const handleOboClear = useCallback(() => {
+    setOboToolOutput(null);
+    setOboStreamCompleted(false);
   }, []);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -110,13 +134,19 @@ function App() {
             className={`tab ${activeTab === "autonomous-agent" ? "active" : ""}`}
             onClick={() => setActiveTab("autonomous-agent")}
           >
-            Autonomous Agent Flow (API call by Foundry Agent)
+            Autonomous Agent Flow
+          </button>
+          <button
+            className={`tab ${activeTab === "interactive-obo" ? "active" : ""}`}
+            onClick={() => setActiveTab("interactive-obo")}
+          >
+            Interactive Agent (OBO) Flow
           </button>
           <button
             className={`tab ${activeTab === "no-agent" ? "active" : ""}`}
             onClick={() => setActiveTab("no-agent")}
           >
-            No Agent Flow (Direct API call by login user)
+            No Agent Flow
           </button>
         </nav>
 
@@ -197,6 +227,85 @@ function App() {
               onToolOutput={handleToolOutput}
               onStreamComplete={handleStreamComplete}
               onClear={handleClear}
+            />
+        </div>
+
+        {/* Interactive OBO Flow — requires login */}
+        <div style={{ display: activeTab === "interactive-obo" ? undefined : "none" }}>
+            <div className="agent-result-section">
+              <details className="result-accordion">
+                <summary>
+                  <span className="result-accordion-title">リソース API レスポンス</span>
+                  {extractCallerInfo(oboToolOutput) ? (
+                    <span className="result-accordion-badge badge-ready">
+                      取得済み
+                      {getCallerType(extractCallerInfo(oboToolOutput), accounts[0]?.username) && (
+                        <span className={`badge-caller-type ${callerTypeCssClass(getCallerType(extractCallerInfo(oboToolOutput), accounts[0]?.username))}`}>{getCallerType(extractCallerInfo(oboToolOutput), accounts[0]?.username)}</span>
+                      )}
+                    </span>
+                  ) : isTokenChainData(oboToolOutput) && !extractCallerInfo(oboToolOutput) ? (
+                    <span className="result-accordion-badge badge-error">取得失敗</span>
+                  ) : oboStreamCompleted && !extractCallerInfo(oboToolOutput) ? (
+                    <span className="result-accordion-badge badge-error">未実行</span>
+                  ) : (
+                    <span className="result-accordion-badge badge-pending">未取得</span>
+                  )}
+                </summary>
+                <div className="result-accordion-body">
+                  {extractCallerInfo(oboToolOutput) ? (
+                    <CallerInfo
+                      data={extractCallerInfo(oboToolOutput)}
+                      loading={false}
+                      error={null}
+                    />
+                  ) : isTokenChainData(oboToolOutput) && !extractCallerInfo(oboToolOutput) ? (
+                    <div className="result-error">
+                      Identity Echo API のレスポンスを取得できませんでした。Token Chain Flow の Step 3 を確認してください。
+                    </div>
+                  ) : oboStreamCompleted ? (
+                    <div className="result-error">
+                      エージェントの応答にリソース API のレスポンスが含まれていませんでした。
+                    </div>
+                  ) : (
+                    <div className="result-placeholder">
+                      Interactive OBO Flow を実行すると、リソース API のレスポンスがここに表示されます。
+                    </div>
+                  )}
+                </div>
+              </details>
+              <details className="result-accordion">
+                <summary>
+                  <span className="result-accordion-title">Token Chain Flow</span>
+                  {isTokenChainSuccess(oboToolOutput) ? (
+                    <span className="result-accordion-badge badge-ready">取得済み</span>
+                  ) : isTokenChainData(oboToolOutput) ? (
+                    <span className="result-accordion-badge badge-error">一部失敗</span>
+                  ) : oboStreamCompleted && !isTokenChainData(oboToolOutput) ? (
+                    <span className="result-accordion-badge badge-error">未実行</span>
+                  ) : (
+                    <span className="result-accordion-badge badge-pending">未取得</span>
+                  )}
+                </summary>
+                <div className="result-accordion-body">
+                  {isTokenChainData(oboToolOutput) ? (
+                    <TokenChainSteps data={extractTokenChainLogs(oboToolOutput)} />
+                  ) : oboStreamCompleted && !isTokenChainData(oboToolOutput) ? (
+                    <div className="result-error">
+                      エージェントの応答に Token Chain データが含まれていませんでした。
+                    </div>
+                  ) : (
+                    <div className="result-placeholder">
+                      Interactive OBO Flow を実行すると、Token Chain の結果がここに表示されます。
+                    </div>
+                  )}
+                </div>
+              </details>
+            </div>
+
+            <InteractiveOboPanel
+              onToolOutput={handleOboToolOutput}
+              onStreamComplete={handleOboStreamComplete}
+              onClear={handleOboClear}
             />
         </div>
 

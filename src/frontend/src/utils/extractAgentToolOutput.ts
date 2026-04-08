@@ -42,7 +42,9 @@ function hasStepKeys(obj: any): boolean {
     // Autonomous User flow keys
     "step2_exchange_user_t2" in obj ||
     "step3_exchange_user_token" in obj ||
-    "step4_call_resource_api" in obj
+    "step4_call_resource_api" in obj ||
+    // Interactive OBO flow keys
+    "step2_obo_exchange" in obj
   );
 }
 
@@ -92,6 +94,15 @@ export function isTokenChainData(toolOutput: any): boolean {
 export function isTokenChainSuccess(toolOutput: any): boolean {
   const logs = extractTokenChainLogs(toolOutput);
   if (!logs) return false;
+
+  // Interactive OBO flow (3 steps)
+  if (logs.step2_obo_exchange) {
+    return (
+      logs.step1_get_t1?.success === true &&
+      logs.step2_obo_exchange?.success === true &&
+      logs.step3_call_resource_api?.success === true
+    );
+  }
 
   // Autonomous User flow (4 steps)
   if (logs.step2_exchange_user_t2) {
