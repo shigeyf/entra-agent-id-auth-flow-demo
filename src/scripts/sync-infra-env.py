@@ -23,9 +23,10 @@ from dotenv import set_key
 # Resolve paths relative to this script
 SCRIPT_DIR = Path(__file__).resolve().parent
 SRC_DIR = SCRIPT_DIR.parent
+LABS_DIR = SCRIPT_DIR.parent.parent / "labs"
 DOTENV_PATH = SRC_DIR / ".env"
 INFRA_DIR = SRC_DIR / "infra"
-PREREQS_DIR = SRC_DIR / "entra_id" / "prereqs"
+PREREQS_DIR = LABS_DIR / "entra-agent-id" / "prereqs"
 
 # Mapping: terraform output name → .env variable name
 INFRA_OUTPUT_TO_ENV: dict[str, str] = {
@@ -100,7 +101,7 @@ def main() -> None:
 
     for cwd, mapping, label in [
         (INFRA_DIR, INFRA_OUTPUT_TO_ENV, "src/infra"),
-        (PREREQS_DIR, PREREQS_OUTPUT_TO_ENV, "src/entra_id/prereqs"),
+        (PREREQS_DIR, PREREQS_OUTPUT_TO_ENV, "labs/entra-agent-id/prereqs"),
     ]:
         updated, skipped = sync_outputs(cwd, mapping, label)
         if updated:
