@@ -155,8 +155,8 @@ python src/scripts/get-approle-id.py
         ├── create-agent-id-blueprint.http  # Blueprint 作成
         ├── create-agent-id.http            # Agent Identity 作成
         ├── create-agent-id-user.http       # Agent User 作成
-        ├── get-autonomous-agent-id-token.http       # Autonomous App Flow トークン
-        └── get-autonomous-agent-user-token.http     # Autonomous User Flow トークン
+        ├── get-autonomous-agent-id-token.http       # Autonomous Agent App Flow トークン
+        └── get-autonomous-agent-user-token.http     # Autonomous Agent User Flow トークン
 ```
 
 ## 開発
