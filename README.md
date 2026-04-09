@@ -1,190 +1,138 @@
-# Microsoft Entra Agent ID
+# Entra Agent ID デモアプリ — Foundry Hosted Agent
 
-Microsoft Entra Agent ID を使った AI エージェントの ID 管理サンプルコード集です。
-Microsoft Graph API (beta) を使い、Agent Identity Blueprint・Agent Identity・Agent User の作成・トークン取得を行う Python スクリプトと HTTP ワークシートを提供します。
+Microsoft Entra Agent ID の 3 つの認証フローを可視化するデモアプリケーションです。
 
-## 概要
+[Microsoft Foundry](https://learn.microsoft.com/en-us/azure/foundry/what-is-foundry) の Hosted Agent と [Entra Agent ID](https://learn.microsoft.com/en-us/entra/agent-id/) を使い、**「誰の権限でリソース API にアクセスしたか」** をリアルタイムに比較できます。
 
-Microsoft Entra Agent ID は、AI エージェントに対して Microsoft Entra ID の ID 管理機能を提供する仕組みです。
-エージェントの認証には大きく 3 種類のフローがあります。
+## デモが示すもの
 
-| フロー                           | 概要                                                                                              |
-| -------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Interactive Agent**            | ユーザーが対話的にエージェントを呼び出し、ユーザーの委任権限 (delegated) でリソースにアクセスする |
-| **Autonomous Agent (App Flow)**  | ユーザー介在なしに、エージェント自身の application 権限でリソースにアクセスする                   |
-| **Autonomous Agent (User Flow)** | エージェントが Agent User を impersonate し、delegated 権限でリソースにアクセスする               |
+同一のエージェント (Agent Identity) が 3 つの認証フローを切り替えて動作し、リソース API (Identity Echo API) が**誰からのアクセスと認識したか**を可視化します。
 
-詳細は [docs/agent-identity-oauth-flow-comparison.md](docs/agent-identity-oauth-flow-comparison.md) を参照してください。
+| シナリオ                  | フロー             | API が認識する呼び出し元                   | トークン種別 |
+| ------------------------- | ------------------ | ------------------------------------------ | ------------ |
+| **Interactive**           | OBO (On-Behalf-Of) | 人間ユーザー本人 (例: `alice@contoso.com`) | delegated    |
+| **Autonomous Agent App**  | client_credentials | Agent Identity 自身 (サービスプリンシパル) | app-only     |
+| **Autonomous Agent User** | user_fic           | Agent User (例: `agentuser@contoso.com`)   | delegated    |
 
-## 前提条件
+これは Entra Agent ID のコアバリュー — **1 つのエージェントが、呼び出し文脈に応じて異なる権限コンテキストを使い分けられる** — を体現しています。
 
-- Python 3.12 以上
-- Microsoft Entra テナント（Microsoft Entra Agent ID プレビューが有効なこと）
-- Azure CLI（`az login` でグローバル管理者または特権ロール管理者としてサインイン済みであること）
-
-## セットアップ
-
-### 1. 仮想環境の作成と依存パッケージのインストール
-
-**Dev Container を使用している場合はこの手順は不要です。**
-Dev Container 起動時に依存パッケージが自動インストールされます。
-
-ローカル環境で実行する場合は、以下のコマンドを実行してください。
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-```
-
-### 2. 環境変数の設定
-
-[.env.example](.env.example) をコピーして `.env` を作成し、値を設定します。
-
-```bash
-cp .env.example .env
-```
-
-| 変数                                     | 説明                                                              | 設定タイミング                                                       |
-| ---------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `TENANT_ID`                              | Entra テナント ID                                                 | 手動                                                                 |
-| `TENANT_NAME`                            | テナントドメイン (例: `contoso.onmicrosoft.com`)                  | 手動                                                                 |
-| `MY_ID`                                  | 自分のユーザーオブジェクト ID                                     | 手動                                                                 |
-| `AGENT_ID_BP_NAME`                       | Agent Identity Blueprint の表示名                                 | 手動                                                                 |
-| `AGENT_ID_NAME`                          | Agent Identity の表示名                                           | 手動                                                                 |
-| `AGENT_ID_USER_NAME`                     | Agent User の表示名                                               | 手動                                                                 |
-| `AGENT_ID_USER_UPN`                      | Agent User の UPN                                                 | 手動                                                                 |
-| `AGENT_ID_USER_OAUTH2_PERMISSION_GRANTS` | Agent User に委任するスコープ (スペース区切り)                    | 手動                                                                 |
-| `AGENT_ID_BP_SECRET`                     | Blueprint のシークレット（テスト用）                              | `create-agent-id-blueprint.http` の `addPassword` 実行後に手動で設定 |
-| `CLIENT_ID`                              | パブリッククライアントアプリの appId（セットアップ手順 3 で作成） | `setup-app-registration.py` 実行後に自動保存                         |
-| `MS_GRAPH_SP_ID`                         | Microsoft Graph サービスプリンシパルのオブジェクト ID             | `get-approle-id.py` 実行後に自動保存                                 |
-| `AGENT_ID_USER_APP_ROLE_ID`              | `AgentIdUser.ReadWrite.IdentityParentedBy` の appRole ID          | `get-approle-id.py` 実行後に自動保存                                 |
-| `ACCESS_TOKEN`                           | 委任アクセストークン                                              | `get-token.py` 実行後に自動保存                                      |
-
-### 3. パブリッククライアントアプリの登録
-
-[src/scripts/setup-app-registration.py](src/scripts/setup-app-registration.py) を使って `az` CLI でアプリ登録を作成します。既にアプリが登録済みの場合はこの手順を省略できます。
-
-```bash
-python src/scripts/setup-app-registration.py
-```
-
-スクリプトは以下を自動実行します。
-
-1. アプリ登録を作成（シングルテナント `AzureADMyOrg`）
-2. パブリッククライアント設定（Redirect URI: `http://localhost`、Allow public client flows: 有効）
-3. Microsoft Graph の委任スコープを 21 件追加
-4. テナント管理者の同意を付与
-5. `.env` の `CLIENT_ID` を更新
-
-> **注意**: `admin-consent` の実行にはグローバル管理者または特権ロール管理者の権限が必要です。
-> AgentIdentity 系のスコープは Microsoft Entra Agent ID プレビューが有効なテナントでのみ利用可能です。
-
-## 使い方
-
-### アクセストークンの取得
-
-操作を始める前に、委任トークン (ACCESS_TOKEN) を取得します。
-実行するとブラウザが開き、インタラクティブに認証を行います。
-
-```bash
-python src/scripts/get-token.py
-```
-
-取得したトークンは `.env` の `ACCESS_TOKEN` に自動保存されます。
-
-### AppRole ID の取得 (Autonomous Agent User Flow 用)
-
-Agent User フローで必要な AppRole ID を Microsoft Graph から取得します。
-
-```bash
-python src/scripts/get-approle-id.py
-```
-
-`MS_GRAPH_SP_ID` と `AGENT_ID_USER_APP_ROLE_ID` が `.env` に自動保存されます。
-
-## HTTP ワークシート
-
-[REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) 拡張機能を使って、Microsoft Graph API を直接呼び出すワークシートを提供します。
-
-| ファイル                                                                                     | 内容                                      |
-| -------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| [src/api/create-agent-id-blueprint.http](src/api/create-agent-id-blueprint.http)             | Agent Identity Blueprint の作成・設定     |
-| [src/api/create-agent-id.http](src/api/create-agent-id.http)                                 | Agent Identity の作成                     |
-| [src/api/create-agent-id-user.http](src/api/create-agent-id-user.http)                       | Agent User の作成・AppRole 割り当て       |
-| [src/api/get-autonomous-agent-id-token.http](src/api/get-autonomous-agent-id-token.http)     | Autonomous Agent (App Flow) トークン取得  |
-| [src/api/get-autonomous-agent-user-token.http](src/api/get-autonomous-agent-user-token.http) | Autonomous Agent (User Flow) トークン取得 |
-
-### 実行順序
-
-#### Autonomous Agent (App Flow) の場合
-
-1. `src/scripts/get-token.py` — 委任トークン取得
-2. `create-agent-id-blueprint.http` — Blueprint 作成 → シークレット追加 → `.env` に `AGENT_ID_BP_SECRET` を設定
-3. `create-agent-id.http` — Agent Identity 作成
-4. `get-autonomous-agent-id-token.http` — 2 段階トークン取得
-
-#### Autonomous Agent (User Flow) の場合
-
-1. `src/scripts/get-token.py` — 委任トークン取得
-2. `create-agent-id-blueprint.http` — Blueprint 作成
-3. `create-agent-id.http` — Agent Identity 作成
-4. `src/scripts/get-approle-id.py` — AppRole ID 取得
-5. `create-agent-id-user.http` — Agent User 作成・権限付与
-6. `get-autonomous-agent-user-token.http` — 3 段階トークン取得
-
-#### Interactive Agent の場合
-
-(作業中)
-
-## リポジトリ構成
+## アーキテクチャ
 
 ```text
-.
-├── .env.example                      # 環境変数テンプレート
-├── pyproject.toml                    # プロジェクト設定
-├── docs/
-│   └── agent-identity-oauth-flow-comparison.md  # フロー比較ドキュメント
-└── src/
-    ├── get-interactive-agent-token.py      # Interactive Agent トークン取得
-    ├── scripts/
-    │   ├── setup-app-registration.py       # パブリッククライアントアプリ登録スクリプト
-    │   ├── get-token.py                    # 委任トークン取得 (インタラクティブ認証)
-    │   └── get-approle-id.py               # AppRole ID 取得
-    └── api/
-        ├── create-agent-id-blueprint.http  # Blueprint 作成
-        ├── create-agent-id.http            # Agent Identity 作成
-        ├── create-agent-id-user.http       # Agent User 作成
-        ├── get-autonomous-agent-id-token.http       # Autonomous App Flow トークン
-        └── get-autonomous-agent-user-token.http     # Autonomous User Flow トークン
+┌─────────────────────────────────────────────────────────────┐
+│  Frontend SPA (React + MSAL.js)                             │
+│  Azure Static Web Apps                                      │
+└──────────┬──────────────────────────────┬───────────────────┘
+           │ Autonomous Flow              │ Interactive Flow
+           ▼                              │
+┌─────────────────────┐                   │
+│  Backend API        │                   │
+│  (FastAPI)          │                   │
+│  Container Apps     │                   │
+└──────────┬──────────┘                   │
+           │                              │
+           ▼                              ▼
+┌────────────────────────────────────────────────────────────┐
+│  Foundry Agent Service (Hosted Agent, Responses API)       │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ Token Exchange (MI Token → TR)                       │  │
+│  │  Autonomous (App):  Agent 自身の権限で TR 取得       │  │
+│  │  Autonomous (User): Agent User の委任権限で TR 取得  │  │
+│  │  Interactive:    ユーザーの Tc を使い OBO で TR 取得 │  │
+│  └──────────────────────┬───────────────────────────────┘  │
+└─────────────────────────┼──────────────────────────────────┘
+                          │
+                          ▼
+┌────────────────────────────────────────────────────────────┐
+│  Identity Echo API (FastAPI)                               │
+│  Container Apps                                            │
+│  → Bearer トークンの caller 情報を返却                     │
+└────────────────────────────────────────────────────────────┘
 ```
 
-## 開発
+## 技術スタック
 
-```bash
-# 開発用依存パッケージのインストール (ruff, poe 等)
-pip install -e ".[dev]"
+| コンポーネント    | 技術                                                                   |
+| ----------------- | ---------------------------------------------------------------------- |
+| Frontend          | React 19 + TypeScript + Vite + MSAL.js                                 |
+| Backend API       | FastAPI (Python) — SPA からの Autonomous フロー仲介                    |
+| Identity Echo API | FastAPI (Python) — Bearer トークンの caller 情報を返却                 |
+| Agent             | Microsoft Foundry Hosted Agent (`azure-ai-agentserver-agentframework`) |
+| Infrastructure    | Terraform (azurerm + azapi + azuread)                                  |
+| 認証              | Microsoft Entra ID, MSAL, Entra Agent ID                               |
+| CI/CD             | Python スクリプトによるデプロイ自動化                                  |
 
-# リントと自動フォーマット
-poe check
+## プロジェクト構成
 
-# リントのみ
-poe lint
+| ディレクトリ                                              | 説明                                                             |
+| --------------------------------------------------------- | ---------------------------------------------------------------- |
+| [src/frontend/](src/frontend/README.md)                   | React SPA (Vite + MSAL.js)                                       |
+| [src/backend_api/](src/backend_api/README.md)             | Backend API (FastAPI) — Foundry Agent 呼び出しの仲介             |
+| [src/identity_echo_api/](src/identity_echo_api/README.md) | Identity Echo API (FastAPI) — トークン検証・caller 情報返却      |
+| [src/agent/](src/agent/README.md)                         | Foundry Hosted Agent (runtime + deploy + entra-agent-id scripts) |
+| [src/infra/](src/infra/README.md)                         | Terraform (Azure リソース定義)                                   |
+| src/scripts/                                              | デプロイ自動化スクリプト                                         |
+| docs/                                                     | アーキテクチャ・OAuth フロー解説                                 |
+| labs/                                                     | Entra Agent ID ハンズオンラボ (手動フロー確認用)                 |
 
-# フォーマットのみ
-poe format
-```
+## クイックスタート
 
-## 参考ドキュメント
+### 前提条件
 
-- [Microsoft Entra Agent ID の概要](https://learn.microsoft.com/en-us/entra/agent-id/overview)
-- [Agent Identity Blueprint の作成](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-blueprint)
-- [Agent Identity の作成と削除](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-delete-agent-identities)
-- [Autonomous Agent — トークン取得](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/autonomous-agent-request-tokens)
-- [Autonomous Agent — Agent User トークン取得](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/autonomous-agent-request-agent-user-tokens)
-- [Interactive Agent — ユーザー認証](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/interactive-agent-authenticate-user)
-- [Agent OBO フロー](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/agent-on-behalf-of-oauth-flow)
+#### Azure / Entra ID の権限
 
-## ライセンス
+| 対象                     | 必要な権限                    | 用途                                                                                                                          |
+| ------------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Azure サブスクリプション | **Contributor**               | リソースグループ、Foundry、Container Apps、ACR 等の作成                                                                       |
+| Azure サブスクリプション | **User Access Administrator** | サービス間 RBAC ロール割り当て (Managed Identity → ACR、Foundry 等)                                                           |
+| Entra ID テナント        | **Application Administrator** | App Registration の作成・API スコープ定義、Entra Agent ID セットアップ (Blueprint FIC 設定、App Role 付与、Agent User 作成等) |
 
-MIT
+#### 方法 A: Dev Container / GitHub Codespaces（推奨）
+
+Dev Container を使うと、必要なツール (Terraform, Azure CLI, Node.js, Python, uv, Docker) がすべてプリインストールされた環境が立ち上がります。追加のインストールは不要です。
+
+- **GitHub Codespaces**: リポジトリページから「Code」→「Codespaces」で起動
+- **VS Code + Dev Container**: [Dev Containers 拡張機能](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) をインストールし、「Reopen in Container」で起動
+
+> Dev Container は `postCreateCommand` で `uv sync` と `poe setup` を自動実行するため、Python 依存パッケージと pre-commit hooks は起動時にセットアップ済みです。
+
+#### 方法 B: ローカル環境
+
+以下のツールを手動でインストールしてください:
+
+- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.9
+- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) (ログイン済み)
+- [Node.js](https://nodejs.org/) >= 20
+- [Python](https://www.python.org/) >= 3.12 + [uv](https://docs.astral.sh/uv/)
+- [Docker](https://docs.docker.com/get-docker/) (Hosted Agent ビルド時)
+
+### セットアップ手順
+
+> **注意**: Entra Agent ID の 3 フローを試すには Azure へのデプロイが必要です。
+> Foundry Hosted Agent は Azure 上でのみ動作するため、ローカル実行だけではデモの主要機能を利用できません。
+
+1. リポジトリのクローンと依存パッケージのインストール
+2. Terraform でインフラをプロビジョニング (Container Apps もこの時点でデプロイされる)
+3. Graph API 操作用アプリの登録 (Prereqs Terraform)
+4. Terraform 出力を `.env` に同期
+5. Entra Agent ID のセットアップ (Blueprint FIC 設定等)
+6. Hosted Agent をデプロイ
+7. Frontend SPA をデプロイ
+
+詳細な手順は [docs/getting-started.md](docs/getting-started.md) を参照してください。
+再デプロイ・運用については [docs/deployment.md](docs/deployment.md) を参照してください。
+
+## ドキュメント
+
+| ドキュメント                                                                         | 内容                                         |
+| ------------------------------------------------------------------------------------ | -------------------------------------------- |
+| [Getting Started](docs/getting-started.md)                                           | 前提条件・環境構築・ローカル起動の完全ガイド |
+| [Deployment](docs/deployment.md)                                                     | 再デプロイ・運用リファレンス                 |
+| [Architecture](docs/architecture.md)                                                 | コンポーネント構成・データフロー詳細         |
+| [Infrastructure](docs/infrastructure.md)                                             | Terraform インフラ構成・変数の読解ガイド     |
+| [Entra Agent ID Overview](docs/entra-agent-id-overview.md)                           | Entra Agent ID 概念と 3 フロー概要           |
+| [Agent Identity OAuth Flow Comparison](docs/agent-identity-oauth-flow-comparison.md) | 3 フローのプロトコル詳細・シーケンス図       |
+
+## License
+
+[MIT](LICENSE)

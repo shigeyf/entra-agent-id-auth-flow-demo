@@ -55,8 +55,26 @@ repos:
       - id: ruff-format
         name: '[Fmt]  Ruff format (*.py)'
 
+  - repo: local
+    hooks:
+      - id: frontend-eslint
+        name: '[Lint] ESLint (frontend *.ts,*.tsx)'
+        language: system
+        entry: bash -c 'cd src/frontend && npx eslint --no-warn-ignored "${@#src/frontend/}"' --
+        files: ^src/frontend/src/.*\.(ts|tsx)$
+        types: [file]
+
   - repo: https://github.com/ComPWA/taplo-pre-commit
     rev: v0.9.3
     hooks:
       - id: taplo-format
         name: '[Fmt]  Taplo (*.toml)'
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.99.5
+    hooks:
+      - id: terraform_fmt
+        name: '[Fmt]  Terraform fmt'
+      - id: terraform_validate
+        name: '[Lint] Terraform validate'
+      - id: terraform_tflint
+        name: '[Lint] Terraform tflint'

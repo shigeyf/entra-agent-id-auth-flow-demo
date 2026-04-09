@@ -1,5 +1,5 @@
 {
-  "name": "Microsoft Foundry Workshop",
+  "name": "Project Root",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
 
@@ -26,6 +26,10 @@
     },
     "ghcr.io/devcontainers-extra/features/uv:1": {
       "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "version": "1.9",
+      "tflint": "latest"
     }
   },
 
@@ -34,27 +38,42 @@
       // "extensions" for this project are specified in here will be installed in Dev Container.
       "extensions": [
         "bierner.markdown-mermaid",
+        "charliermarsh.ruff",
+        "DavidAnson.vscode-markdownlint",
         "esbenp.prettier-vscode",
         "GitHub.vscode-github-actions",
+        "hashicorp.terraform",
         "humao.rest-client",
+        "ms-azuretools.vscode-azureresourcegroups",
+        "ms-azuretools.vscode-azureterraform",
+        "ms-azuretools.vscode-azure-github-copilot",
+        "ms-azuretools.vscode-azure-mcp-server",
+        "ms-azuretools.vscode-bicep",
         "ms-python.python",
+        "ms-python.vscode-python-envs",
+        "ms-python.pylance",
         "ms-toolsai.jupyter",
         "ms-toolsai.jupyter-keymap",
         "ms-toolsai.jupyter-renderers",
         "ms-vscode.azurecli",
         "redhat.vscode-yaml",
         "tamasfe.even-better-toml"
-      ]
+      ],
       // "settings" for this project must be placed in infra/terraform/.vscode/settings.json.
       // DevContainer automatically inherits the workspace settings.json.
-      // "settings": {}
+      "settings": {
+        "python-envs.terminal.autoActivationType": "shellStartup"
+      }
     }
   },
 
-  "postCreateCommand": "uv sync --extra dev && uv run poe setup && terraform version && az version",
-
-  "remoteUser": "vscode",
   "mounts": [
     "source=${localEnv:HOME}${localEnv:USERPROFILE}/.azure,target=/home/vscode/.azure,type=bind,consistency=cached"
-  ]
+  ],
+  "postCreateCommand": "bash .devcontainer/scripts/setup-pip-wrapper.sh && uv venv --clear --prompt .venv && uv sync --extra dev && uv run poe setup && cd src/frontend && npm install && cd ../.. && terraform version && az bicep upgrade && az version",
+  "remoteUser": "vscode",
+  "remoteEnv": {
+    "AZURE_TENANT_ID": "${localEnv:AZURE_TENANT_ID}",
+    "AZURE_SUBSCRIPTION_ID": "${localEnv:AZURE_SUBSCRIPTION_ID}"
+  }
 }

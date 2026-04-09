@@ -6,7 +6,7 @@ import requests
 from dotenv import load_dotenv, set_key
 
 # Always resolve .env relative to the project root (two levels up from this script)
-dotenv_path = Path(__file__).resolve().parent.parent.parent / ".env"
+dotenv_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path)
 
 token = os.environ.get("ACCESS_TOKEN")
@@ -39,7 +39,5 @@ for role in sp["appRoles"]:
         print("Saved AGENT_ID_USER_APP_ROLE_ID to .env file.")
         break
 else:
-    print(
-        f"ERROR: appRole '{role_name}' not found in Microsoft Graph service principal."
-    )
+    print(f"ERROR: appRole '{role_name}' not found in Microsoft Graph service principal.")
     sys.exit(1)

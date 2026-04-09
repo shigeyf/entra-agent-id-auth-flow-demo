@@ -1,6 +1,4 @@
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+# pyproject.toml - Project Configurations
 
 [project]
 name = "microsoft-entra-agent-id"
@@ -10,54 +8,42 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
 authors = [{ name = "Microsoft Entra Agent ID Contributors" }]
-classifiers = [
-  "Development Status :: 3 - Alpha",
-  "Intended Audience :: Developers",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.12",
+dependencies = [
+  # src/frontend: Frontend SPA (Vite + React)
+  "msal>=1.31.0",
+  "requests>=2.32.0",
+  "python-dotenv>=1.0.0",
+  # src/identity_echo_api: Identity Echo API
+  "fastapi>=0.115.0",
+  "uvicorn>=0.34.0",
+  "PyJWT[crypto]>=2.9.0",
+  "httpx>=0.28.0",
+  # src/agent: Foundry Hosted Agent (client & deploy)
+  "pyyaml>=6.0",
+  "azure-identity==1.25.3",
+  "azure-ai-projects==2.0.0b4",
+  # src/agent: Foundry Hosted Agent (runtime)
+  "azure-ai-agentserver-agentframework==1.0.0b17",
 ]
-dependencies = ["msal>=1.31.0", "requests>=2.32.0", "python-dotenv>=1.0.0"]
 
 [project.optional-dependencies]
 dev = ["poethepoet>=0.32.0", "ruff>=0.9.0"]
 
-[tool.setuptools]
-packages = []
 
-# Poe the Poet - Task Runner
-[tool.poe.tasks]
+# --------------------------------------------------------------------
+# Tools - UV - Universal Version Manager for Python
+# --------------------------------------------------------------------
 
-# Setup (Development Environment)
-[tool.poe.tasks.setup]
-shell = "uv tool install pre-commit && pre-commit install --install-hooks"
-help = "Set up the development environment (install pre-commit via uv tool and hooks)"
+[tool.uv]
+prerelease = "allow"
 
-# Lint & Format
-[tool.poe.tasks.lint]
-cmd = "ruff check ."
-help = "Run linting with Ruff"
 
-[tool.poe.tasks.format]
-cmd = "ruff format ."
-help = "Run formatting with Ruff"
+# --------------------------------------------------------------------
+# Tools - Ruff - Flake8 + isort + Black All-in-One Linter and Formatter
+# --------------------------------------------------------------------
 
-[tool.poe.tasks.check]
-sequence = ["lint", "format"]
-help = "Run linting and formatting"
-
-# Test
-[tool.poe.tasks.test]
-cmd = "echo 'No tests defined yet'"
-help = "Run tests"
-
-# Clean up
-[tool.poe.tasks.clean]
-cmd = "rm -rf .venv __pycache__ .pytest_cache .ruff_cache *.egg-info"
-help = "Remove build artifacts"
-
-# Ruff - Flake8 + isort + Black All-in-One Linter and Formatter
 [tool.ruff]
-line-length = 88
+line-length = 100
 target-version = "py312"
 exclude = [".git", ".venv", "node_modules", "infra"]
 
@@ -80,8 +66,95 @@ known-first-party = ["src"]
 quote-style = "double"
 indent-style = "space"
 
+
+# --------------------------------------------------------------------
+# Tools - Mypy - Static Type Checker for Python
+# --------------------------------------------------------------------
+
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 exclude = ["^.git/", "^.venv/", "^node_modules/", "^infra/"]
+
+
+# --------------------------------------------------------------------
+# Tools - Poe the Poet - Task Runner
+# --------------------------------------------------------------------
+
+[tool.poe.tasks]
+
+# Setup (Development Environment)
+[tool.poe.tasks.setup]
+shell = "uv tool install pre-commit && pre-commit install --install-hooks"
+help = "Set up the development environment (install pre-commit via uv tool and hooks)"
+
+# Lint & Format (Backend Python)
+[tool.poe.tasks.lint-backend]
+cmd = "ruff check ."
+help = "Run Python linting with Ruff"
+
+[tool.poe.tasks.format-backend]
+cmd = "ruff format ."
+help = "Run Python formatting with Ruff"
+
+# Lint & Format (Frontend)
+[tool.poe.tasks.lint-frontend]
+shell = "cd src/frontend && npx eslint ."
+help = "Run Frontend linting with ESLint"
+
+[tool.poe.tasks.format-frontend]
+shell = "cd src/frontend && npx prettier --write 'src/**/*.{ts,tsx,css,html}'"
+help = "Run Frontend formatting with Prettier"
+
+# Lint & Format (Infra)
+[tool.poe.tasks.lint-infra]
+shell = "cd src/infra && tflint --init && tflint"
+help = "Run Terraform linting with TFLint"
+
+[tool.poe.tasks.format-infra]
+shell = "terraform fmt -recursive src/infra"
+help = "Run Terraform formatting"
+
+[tool.poe.tasks.check]
+sequence = [
+  "lint-backend",
+  "format-backend",
+  "lint-frontend",
+  "format-frontend",
+  "lint-infra",
+  "format-infra",
+]
+help = "Run all linting and formatting (Backend [Python], Frontend, Infra)"
+
+# Clean up
+[tool.poe.tasks.clean]
+cmd = "rm -rf .venv __pycache__ .pytest_cache .ruff_cache *.egg-info"
+help = "Remove build artifacts"
+
+# Test
+[tool.poe.tasks.test]
+cmd = "echo 'No tests defined yet'"
+
+# Identity Echo API
+[tool.poe.tasks.api]
+shell = "cd src && uvicorn identity_echo_api.main:app --reload --port 8000"
+help = "Start Identity Echo API dev server on port 8000"
+
+# Frontend SPA
+[tool.poe.tasks.frontend]
+shell = "cd src/frontend && npm run dev"
+help = "Start Frontend SPA dev server (Vite)"
+
+# Foundry Hosted Agent
+[tool.poe.tasks.agent-local-invoke]
+shell = "cd src/agent/runtime && python main.py"
+help = "Start Foundry Hosted Agent locally on port 8088"
+
+[tool.poe.tasks.agent-invoke]
+shell = "cd src/agent && python ./scripts/invoke-agent.py"
+help = "Invoke the deployed Hosted Agent (append message as argument, e.g. poe invoke-agent 'hello')"
+
+[tool.poe.tasks.agent-deploy]
+shell = "cd src/agent && python ./scripts/deploy-agent.py build push deploy --start --wait"
+help = "Deploy Hosted Agent to Foundry and start deployment (with building and pushing the agent)"

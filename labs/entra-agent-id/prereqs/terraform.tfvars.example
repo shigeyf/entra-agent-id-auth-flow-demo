@@ -1,0 +1,16 @@
+# terraform.tfvars.example
+
+# Tenant ID (Required)
+tenant_id = "your-tenant-id"
+
+# App Registration display name (Optional, defaults to "Entra-Agent-ID-Manager")
+# app_display_name = "Entra-Agent-ID-Manager"
+
+# Whether user assignment is required (Optional, defaults to true)
+# app_role_assignment_required = true
+
+# Additional users to assign to the Enterprise Application (Optional)
+# assigned_user_object_ids = ["user-object-id-1", "user-object-id-2"]
+
+# Groups to assign to the Enterprise Application (Optional)
+# assigned_group_object_ids = ["group-object-id-1"]
