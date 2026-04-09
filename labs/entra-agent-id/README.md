@@ -1,4 +1,4 @@
-# Microsoft Entra Agent ID
+# Microsoft Entra Agent ID — Graph API によるエージェント認証ハンズオン
 
 Microsoft Entra Agent ID を使った AI エージェントの ID 管理サンプルコード集です。
 Microsoft Graph API (beta) を使い、Agent Identity Blueprint・Agent Identity・Agent User の作成・トークン取得を行う Python スクリプトと HTTP ワークシートを提供します。
@@ -8,11 +8,11 @@ Microsoft Graph API (beta) を使い、Agent Identity Blueprint・Agent Identity
 Microsoft Entra Agent ID は、AI エージェントに対して Microsoft Entra ID の ID 管理機能を提供する仕組みです。
 エージェントの認証には大きく 3 種類のフローがあります。
 
-| フロー                           | 概要                                                                                              |
-| -------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Interactive Agent**            | ユーザーが対話的にエージェントを呼び出し、ユーザーの委任権限 (delegated) でリソースにアクセスする |
-| **Autonomous Agent (App Flow)**  | ユーザー介在なしに、エージェント自身の application 権限でリソースにアクセスする                   |
-| **Autonomous Agent (User Flow)** | エージェントが Agent User を impersonate し、delegated 権限でリソースにアクセスする               |
+| フロー                           | 概要                                                                                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Interactive Agent (OBO) Flow** | ユーザーが対話的にエージェントを呼び出し、ユーザーの委任権限 (delegated) でリソースにアクセスする（※ 本ラボではサンプルコード未提供） |
+| **Autonomous Agent (App) Flow**  | ユーザー介在なしに、エージェント自身の application 権限でリソースにアクセスする                                                       |
+| **Autonomous Agent (User) Flow** | エージェントが Agent User を impersonate し、delegated 権限でリソースにアクセスする                                                   |
 
 詳細は [docs/agent-identity-oauth-flow-comparison.md](docs/agent-identity-oauth-flow-comparison.md) を参照してください。
 
@@ -117,14 +117,14 @@ python src/scripts/get-approle-id.py
 
 ### 実行順序
 
-#### Autonomous Agent (App Flow) の場合
+#### Autonomous Agent (App) Flow の場合
 
 1. `src/scripts/get-token.py` — 委任トークン取得
 2. `create-agent-id-blueprint.http` — Blueprint 作成 → シークレット追加 → `.env` に `AGENT_ID_BP_SECRET` を設定
 3. `create-agent-id.http` — Agent Identity 作成
 4. `get-autonomous-agent-id-token.http` — 2 段階トークン取得
 
-#### Autonomous Agent (User Flow) の場合
+#### Autonomous Agent (User) Flow の場合
 
 1. `src/scripts/get-token.py` — 委任トークン取得
 2. `create-agent-id-blueprint.http` — Blueprint 作成
@@ -133,9 +133,10 @@ python src/scripts/get-approle-id.py
 5. `create-agent-id-user.http` — Agent User 作成・権限付与
 6. `get-autonomous-agent-user-token.http` — 3 段階トークン取得
 
-#### Interactive Agent の場合
+#### Interactive Agent (OBO) Flow の場合
 
-(作業中)
+> **Note**: Interactive Agent OBO フローのサンプルコードは現時点では用意していません。
+> Interactive Agent OBO フローの概要については [docs/agent-identity-oauth-flow-comparison.md](docs/agent-identity-oauth-flow-comparison.md) を参照してください。
 
 ## リポジトリ構成
 
@@ -177,14 +178,14 @@ poe format
 
 ## 参考ドキュメント
 
-- [Microsoft Entra Agent ID の概要](https://learn.microsoft.com/en-us/entra/agent-id/overview)
-- [Agent Identity Blueprint の作成](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-blueprint)
-- [Agent Identity の作成と削除](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/create-delete-agent-identities)
-- [Autonomous Agent — トークン取得](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/autonomous-agent-request-tokens)
-- [Autonomous Agent — Agent User トークン取得](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/autonomous-agent-request-agent-user-tokens)
-- [Interactive Agent — ユーザー認証](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/interactive-agent-authenticate-user)
-- [Agent OBO フロー](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/agent-on-behalf-of-oauth-flow)
+- [Microsoft Entra Agent ID の概要](https://learn.microsoft.com/en-us/entra/agent-id/what-is-microsoft-entra-agent-id)
+- [Agent Identity Blueprint の作成](https://learn.microsoft.com/en-us/entra/agent-id/create-blueprint)
+- [Agent Identity の作成と削除](https://learn.microsoft.com/en-us/entra/agent-id/create-delete-agent-identities)
+- [Autonomous Agent — トークン取得](https://learn.microsoft.com/en-us/entra/agent-id/autonomous-agent-request-tokens)
+- [Autonomous Agent — Agent User トークン取得](https://learn.microsoft.com/en-us/entra/agent-id/autonomous-agent-request-agent-user-tokens)
+- [Interactive Agent — ユーザー認証とトークン取得](https://learn.microsoft.com/en-us/entra/agent-id/interactive-agent-authentication-authorization-flow)
+- [Agent OBO フロー](https://learn.microsoft.com/en-us/entra/agent-id/agent-on-behalf-of-oauth-flow)
 
 ## ライセンス
 
-MIT
+[MIT](../../LICENSE)
