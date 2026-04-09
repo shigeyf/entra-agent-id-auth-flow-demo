@@ -70,7 +70,7 @@
   "mounts": [
     "source=${localEnv:HOME}${localEnv:USERPROFILE}/.azure,target=/home/vscode/.azure,type=bind,consistency=cached"
   ],
-  "postCreateCommand": "bash .devcontainer/scripts/setup-pip-wrapper.sh && uv venv --clear --prompt .venv && uv sync --extra dev && uv run poe setup && terraform version && az bicep upgrade && az version",
+  "postCreateCommand": "bash .devcontainer/scripts/setup-pip-wrapper.sh && uv venv --clear --prompt .venv && uv sync --extra dev && uv run poe setup && cd src/frontend && npm install && cd ../.. && terraform version && az bicep upgrade && az version",
   "remoteUser": "vscode",
   "remoteEnv": {
     "AZURE_TENANT_ID": "${localEnv:AZURE_TENANT_ID}",
