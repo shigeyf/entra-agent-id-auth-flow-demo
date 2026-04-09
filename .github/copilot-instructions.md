@@ -3,7 +3,7 @@
 ## プロジェクト概要
 
 Entra Agent ID デモアプリ。Microsoft Foundry の Hosted Agent と Entra Agent ID を使い、
-Interactive / Autonomous App / Autonomous User の 3 フローで「誰の権限でリソース API にアクセスしたか」を
+Interactive / Autonomous Agent App / Autonomous Agent User の 3 フローで「誰の権限でリソース API にアクセスしたか」を
 可視化するデモンストレーション。
 
 ## ⚠️ 重要: Microsoft Foundry の用語
