@@ -1,0 +1,140 @@
+{
+  "topbar": {
+    "title": "Foundry Hosted Agent + Entra Agent ID Demo",
+    "signIn": "サインイン",
+    "signOut": "サインアウト"
+  },
+  "app": {
+    "heading": "Foundry Hosted Agent + Entra Agent ID Demo",
+    "subtitle": "Microsoft Foundry の Hosted Agent が Entra Agent ID の Autonomous Agent フロー（アプリケーション権限）と Agent User OBO フロー（委任権限）の両方で外部 API にアクセスし、アクセストークンの中身や「誰の権限で呼び出されたか」を Identity Echo API で可視化するデモです。",
+    "tabs": {
+      "autonomousAgent": "Autonomous Agent Flow",
+      "interactiveObo": "Interactive Agent (OBO) Flow",
+      "noAgent": "No Agent Flow"
+    },
+    "resourceApiResponse": "リソース API レスポンス",
+    "tokenChainFlow": "Token Chain Flow",
+    "badges": {
+      "ready": "取得済み",
+      "error": "取得失敗",
+      "notExecuted": "未実行",
+      "pending": "未取得",
+      "partialFailure": "一部失敗",
+      "fetching": "取得中…"
+    },
+    "autonomous": {
+      "noCallerInfo": "Identity Echo API のレスポンスを取得できませんでした。Token Chain Flow の Step 3 を確認してください。",
+      "noResourceApi": "エージェントの応答にリソース API のレスポンスが含まれていませんでした。クエリ内容を確認してください。",
+      "placeholder": "エージェントが Autonomous Agent Flow を実行すると、リソース API のレスポンスがここに表示されます。",
+      "noTokenChain": "エージェントの応答に Token Chain データが含まれていませんでした。クエリ内容を確認してください。",
+      "tokenChainPlaceholder": "エージェントが Autonomous Agent Flow を実行すると、Token Chain の結果がここに表示されます。"
+    },
+    "obo": {
+      "noCallerInfo": "Identity Echo API のレスポンスを取得できませんでした。Token Chain Flow の Step 3 を確認してください。",
+      "noResourceApi": "エージェントの応答にリソース API のレスポンスが含まれていませんでした。",
+      "placeholder": "Interactive OBO Flow を実行すると、リソース API のレスポンスがここに表示されます。",
+      "noTokenChain": "エージェントの応答に Token Chain データが含まれていませんでした。",
+      "tokenChainPlaceholder": "Interactive OBO Flow を実行すると、Token Chain の結果がここに表示されます。"
+    },
+    "noAgent": {
+      "signInRequired": "Identity Echo API を呼び出すにはサインインしてください。",
+      "loggedInAs": "ログイン中:",
+      "callApi": "Identity Echo API を直接呼び出す",
+      "calling": "呼び出し中...",
+      "loading": "読み込み中...",
+      "errorPrefix": "エラー:",
+      "placeholder": "「Identity Echo API を呼び出す」ボタンを押すと、リソース API のレスポンスがここに表示されます。"
+    }
+  },
+  "chat": {
+    "clear": "クリア",
+    "toolLabel": "Tool:",
+    "auto": "Auto",
+    "autoDescription": "LLM がメッセージ内容からツールを自動選択",
+    "you": "You",
+    "agent": "Agent",
+    "toolOutputJson": "Tool Output (JSON)",
+    "responding": "応答中",
+    "errorPrefix": "エラー:",
+    "inputPlaceholder": "メッセージを入力...",
+    "stop": "停止",
+    "send": "送信"
+  },
+  "autonomousPanel": {
+    "heading": "Autonomous Agent Flow",
+    "description": "Backend API (MSI) → Foundry Hosted Agent (Agent Identity) → Identity Echo API",
+    "emptyState": "メッセージを送信して Autonomous Agent Flow を実行します。",
+    "tools": {
+      "autonomousApp": "Autonomous Agent App",
+      "autonomousAppDesc": "Call Identity Echo API with Entra Agent Identity (App)",
+      "autonomousUser": "Autonomous Agent User",
+      "autonomousUserDesc": "Call Identity Echo API with Entra Agent Identity (User)",
+      "checkEnv": "Check Environment",
+      "checkEnvDesc": "Check the agent runtime environment and Azure credentials"
+    }
+  },
+  "oboPanel": {
+    "heading": "Interactive Agent (OBO) Flow",
+    "descriptionShort": "SPA (MSAL login) → Foundry Hosted Agent (OBO exchange) → Identity Echo API",
+    "descriptionFull": "SPA (MSAL login) → Foundry Hosted Agent (Agent Identity On-behalf-of) → Identity Echo API",
+    "signInRequired": "Interactive Agent (OBO) フローを実行するにはサインインしてください。",
+    "emptyState": "メッセージを送信して Interactive Agent (OBO) Flow を実行します。\nログインユーザーの委任権限で Agent が Identity Echo API を呼び出します。",
+    "tools": {
+      "interactiveObo": "Interactive Agent OBO",
+      "interactiveOboDesc": "Call Identity Echo API with Interactive OBO flow (delegated human user)"
+    }
+  },
+  "callerInfo": {
+    "loading": "読み込み中...",
+    "errorPrefix": "エラー:",
+    "noCallerInfo": "レスポンスに caller 情報が含まれていません。",
+    "heading": "リソース API レスポンス",
+    "summaryDelegated": "{{caller}} の委任権限 ({{scopes}}) でアクセスされました",
+    "summaryAppOnly": "アプリケーション権限 ({{roles}}) でアクセスされました (OID: {{oid}})",
+    "none": "なし",
+    "resource": "Resource",
+    "accessedAt": "Accessed At",
+    "tokenKind": "Token Kind",
+    "oid": "OID",
+    "upn": "UPN",
+    "displayName": "Display Name",
+    "appId": "App ID",
+    "scopes": "Scopes",
+    "roles": "Roles",
+    "rawJson": "生 JSON レスポンス"
+  },
+  "tokenChain": {
+    "heading": "Token Chain Flow",
+    "step": "Step",
+    "steps": {
+      "step1_get_t1": {
+        "label": "T1 取得",
+        "description": "Project MSI → Agent Blueprint Identity Token (T1)"
+      },
+      "step2_exchange_app_token": {
+        "label": "TR 取得 (App)",
+        "description": "T1 → Agent Identity Token (TR) via client_credentials for resource API access"
+      },
+      "step3_call_resource_api": {
+        "label": "API 呼び出し",
+        "description": "Identity Echo API に Bearer TR でアクセス"
+      },
+      "step2_exchange_user_t2": {
+        "label": "T2 取得",
+        "description": "T1 → Agent Identity Token (T2) via client_credentials"
+      },
+      "step3_exchange_user_token": {
+        "label": "TR 取得 (User)",
+        "description": "T2 + Agent User UPN → Delegated Token (TR) via user_fic grant"
+      },
+      "step4_call_resource_api": {
+        "label": "API 呼び出し",
+        "description": "Identity Echo API に Bearer TR (delegated) でアクセス"
+      }
+    }
+  },
+  "language": {
+    "ja": "日本語",
+    "en": "English"
+  }
+}

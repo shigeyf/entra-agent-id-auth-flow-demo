@@ -7,6 +7,7 @@ import {
   BrowserAuthError,
   InteractionRequiredAuthError,
 } from "@azure/msal-browser";
+import { useTranslation } from "react-i18next";
 import { loginRequest } from "./authConfig";
 import { getCallerInfo } from "./api/identityEchoApi";
 import CallerInfo from "./components/CallerInfo";
@@ -22,6 +23,7 @@ type ScenarioTab = "autonomous-agent" | "interactive-obo" | "no-agent";
 function App() {
   const { instance, accounts } = useMsal();
   const isAuthenticated = useIsAuthenticated();
+  const { t } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<ScenarioTab>("autonomous-agent");
 
@@ -122,9 +124,9 @@ function App() {
       <TopBar />
 
       <header>
-        <h1>Foundry Hosted Agent + Entra Agent ID Demo</h1>
+        <h1>{t("app.heading")}</h1>
         <p className="subtitle">
-          Microsoft Foundry の Hosted Agent が Entra Agent ID の Autonomous Agent フロー（アプリケーション権限）と Agent User OBO フロー（委任権限）の両方で外部 API にアクセスし、アクセストークンの中身や「誰の権限で呼び出されたか」を Identity Echo API で可視化するデモです。
+          {t("app.subtitle")}
         </p>
       </header>
       <main>
@@ -134,19 +136,19 @@ function App() {
             className={`tab ${activeTab === "autonomous-agent" ? "active" : ""}`}
             onClick={() => setActiveTab("autonomous-agent")}
           >
-            Autonomous Agent Flow
+            {t("app.tabs.autonomousAgent")}
           </button>
           <button
             className={`tab ${activeTab === "interactive-obo" ? "active" : ""}`}
             onClick={() => setActiveTab("interactive-obo")}
           >
-            Interactive Agent (OBO) Flow
+            {t("app.tabs.interactiveObo")}
           </button>
           <button
             className={`tab ${activeTab === "no-agent" ? "active" : ""}`}
             onClick={() => setActiveTab("no-agent")}
           >
-            No Agent Flow
+            {t("app.tabs.noAgent")}
           </button>
         </nav>
 
@@ -156,20 +158,20 @@ function App() {
             <div className="agent-result-section">
               <details className="result-accordion">
                 <summary>
-                  <span className="result-accordion-title">リソース API レスポンス</span>
+                  <span className="result-accordion-title">{t("app.resourceApiResponse")}</span>
                   {extractCallerInfo(agentToolOutput) ? (
                     <span className="result-accordion-badge badge-ready">
-                      取得済み
+                      {t("app.badges.ready")}
                       {getCallerType(extractCallerInfo(agentToolOutput), accounts[0]?.username) && (
                         <span className={`badge-caller-type ${callerTypeCssClass(getCallerType(extractCallerInfo(agentToolOutput), accounts[0]?.username))}`}>{getCallerType(extractCallerInfo(agentToolOutput), accounts[0]?.username)}</span>
                       )}
                     </span>
                   ) : isTokenChainData(agentToolOutput) && !extractCallerInfo(agentToolOutput) ? (
-                    <span className="result-accordion-badge badge-error">取得失敗</span>
+                    <span className="result-accordion-badge badge-error">{t("app.badges.error")}</span>
                   ) : streamCompleted && !extractCallerInfo(agentToolOutput) ? (
-                    <span className="result-accordion-badge badge-error">未実行</span>
+                    <span className="result-accordion-badge badge-error">{t("app.badges.notExecuted")}</span>
                   ) : (
-                    <span className="result-accordion-badge badge-pending">未取得</span>
+                    <span className="result-accordion-badge badge-pending">{t("app.badges.pending")}</span>
                   )}
                 </summary>
                 <div className="result-accordion-body">
@@ -181,30 +183,30 @@ function App() {
                     />
                   ) : isTokenChainData(agentToolOutput) && !extractCallerInfo(agentToolOutput) ? (
                     <div className="result-error">
-                      Identity Echo API のレスポンスを取得できませんでした。Token Chain Flow の Step 3 を確認してください。
+                      {t("app.autonomous.noCallerInfo")}
                     </div>
                   ) : streamCompleted ? (
                     <div className="result-error">
-                      エージェントの応答にリソース API のレスポンスが含まれていませんでした。クエリ内容を確認してください。
+                      {t("app.autonomous.noResourceApi")}
                     </div>
                   ) : (
                     <div className="result-placeholder">
-                      エージェントが Autonomous Agent Flow を実行すると、リソース API のレスポンスがここに表示されます。
+                      {t("app.autonomous.placeholder")}
                     </div>
                   )}
                 </div>
               </details>
               <details className="result-accordion">
                 <summary>
-                  <span className="result-accordion-title">Token Chain Flow</span>
+                  <span className="result-accordion-title">{t("app.tokenChainFlow")}</span>
                   {isTokenChainSuccess(agentToolOutput) ? (
-                    <span className="result-accordion-badge badge-ready">取得済み</span>
+                    <span className="result-accordion-badge badge-ready">{t("app.badges.ready")}</span>
                   ) : isTokenChainData(agentToolOutput) ? (
-                    <span className="result-accordion-badge badge-error">一部失敗</span>
+                    <span className="result-accordion-badge badge-error">{t("app.badges.partialFailure")}</span>
                   ) : streamCompleted && !isTokenChainData(agentToolOutput) ? (
-                    <span className="result-accordion-badge badge-error">未実行</span>
+                    <span className="result-accordion-badge badge-error">{t("app.badges.notExecuted")}</span>
                   ) : (
-                    <span className="result-accordion-badge badge-pending">未取得</span>
+                    <span className="result-accordion-badge badge-pending">{t("app.badges.pending")}</span>
                   )}
                 </summary>
                 <div className="result-accordion-body">
@@ -212,11 +214,11 @@ function App() {
                     <TokenChainSteps data={extractTokenChainLogs(agentToolOutput)} />
                   ) : streamCompleted && !isTokenChainData(agentToolOutput) ? (
                     <div className="result-error">
-                      エージェントの応答に Token Chain データが含まれていませんでした。クエリ内容を確認してください。
+                      {t("app.autonomous.noTokenChain")}
                     </div>
                   ) : (
                     <div className="result-placeholder">
-                      エージェントが Autonomous Agent Flow を実行すると、Token Chain の結果がここに表示されます。
+                      {t("app.autonomous.tokenChainPlaceholder")}
                     </div>
                   )}
                 </div>
@@ -235,20 +237,20 @@ function App() {
             <div className="agent-result-section">
               <details className="result-accordion">
                 <summary>
-                  <span className="result-accordion-title">リソース API レスポンス</span>
+                  <span className="result-accordion-title">{t("app.resourceApiResponse")}</span>
                   {extractCallerInfo(oboToolOutput) ? (
                     <span className="result-accordion-badge badge-ready">
-                      取得済み
+                      {t("app.badges.ready")}
                       {getCallerType(extractCallerInfo(oboToolOutput), accounts[0]?.username) && (
                         <span className={`badge-caller-type ${callerTypeCssClass(getCallerType(extractCallerInfo(oboToolOutput), accounts[0]?.username))}`}>{getCallerType(extractCallerInfo(oboToolOutput), accounts[0]?.username)}</span>
                       )}
                     </span>
                   ) : isTokenChainData(oboToolOutput) && !extractCallerInfo(oboToolOutput) ? (
-                    <span className="result-accordion-badge badge-error">取得失敗</span>
+                    <span className="result-accordion-badge badge-error">{t("app.badges.error")}</span>
                   ) : oboStreamCompleted && !extractCallerInfo(oboToolOutput) ? (
-                    <span className="result-accordion-badge badge-error">未実行</span>
+                    <span className="result-accordion-badge badge-error">{t("app.badges.notExecuted")}</span>
                   ) : (
-                    <span className="result-accordion-badge badge-pending">未取得</span>
+                    <span className="result-accordion-badge badge-pending">{t("app.badges.pending")}</span>
                   )}
                 </summary>
                 <div className="result-accordion-body">
@@ -260,30 +262,30 @@ function App() {
                     />
                   ) : isTokenChainData(oboToolOutput) && !extractCallerInfo(oboToolOutput) ? (
                     <div className="result-error">
-                      Identity Echo API のレスポンスを取得できませんでした。Token Chain Flow の Step 3 を確認してください。
+                      {t("app.obo.noCallerInfo")}
                     </div>
                   ) : oboStreamCompleted ? (
                     <div className="result-error">
-                      エージェントの応答にリソース API のレスポンスが含まれていませんでした。
+                      {t("app.obo.noResourceApi")}
                     </div>
                   ) : (
                     <div className="result-placeholder">
-                      Interactive OBO Flow を実行すると、リソース API のレスポンスがここに表示されます。
+                      {t("app.obo.placeholder")}
                     </div>
                   )}
                 </div>
               </details>
               <details className="result-accordion">
                 <summary>
-                  <span className="result-accordion-title">Token Chain Flow</span>
+                  <span className="result-accordion-title">{t("app.tokenChainFlow")}</span>
                   {isTokenChainSuccess(oboToolOutput) ? (
-                    <span className="result-accordion-badge badge-ready">取得済み</span>
+                    <span className="result-accordion-badge badge-ready">{t("app.badges.ready")}</span>
                   ) : isTokenChainData(oboToolOutput) ? (
-                    <span className="result-accordion-badge badge-error">一部失敗</span>
+                    <span className="result-accordion-badge badge-error">{t("app.badges.partialFailure")}</span>
                   ) : oboStreamCompleted && !isTokenChainData(oboToolOutput) ? (
-                    <span className="result-accordion-badge badge-error">未実行</span>
+                    <span className="result-accordion-badge badge-error">{t("app.badges.notExecuted")}</span>
                   ) : (
-                    <span className="result-accordion-badge badge-pending">未取得</span>
+                    <span className="result-accordion-badge badge-pending">{t("app.badges.pending")}</span>
                   )}
                 </summary>
                 <div className="result-accordion-body">
@@ -291,11 +293,11 @@ function App() {
                     <TokenChainSteps data={extractTokenChainLogs(oboToolOutput)} />
                   ) : oboStreamCompleted && !isTokenChainData(oboToolOutput) ? (
                     <div className="result-error">
-                      エージェントの応答に Token Chain データが含まれていませんでした。
+                      {t("app.obo.noTokenChain")}
                     </div>
                   ) : (
                     <div className="result-placeholder">
-                      Interactive OBO Flow を実行すると、Token Chain の結果がここに表示されます。
+                      {t("app.obo.tokenChainPlaceholder")}
                     </div>
                   )}
                 </div>
@@ -313,13 +315,13 @@ function App() {
         <div style={{ display: activeTab === "no-agent" ? undefined : "none" }}>
             {!isAuthenticated ? (
               <div className="auth-section">
-                <p>Identity Echo API を呼び出すにはサインインしてください。</p>
+                <p>{t("app.noAgent.signInRequired")}</p>
               </div>
             ) : (
               <>
                 <div className="auth-section">
                   <p>
-                    ログイン中: <strong>{accounts[0]?.username}</strong>
+                    {t("app.noAgent.loggedInAs")} <strong>{accounts[0]?.username}</strong>
                   </p>
                   <div className="button-group">
                     <button
@@ -327,39 +329,39 @@ function App() {
                       disabled={loading}
                       className="btn btn-primary"
                     >
-                      {loading ? "呼び出し中..." : "Identity Echo API を呼び出す"}
+                      {loading ? t("app.noAgent.calling") : t("app.noAgent.callApi")}
                     </button>
                   </div>
                 </div>
 
                 <details className="result-accordion" open={!!callerData || !!error}>
                   <summary>
-                    <span className="result-accordion-title">リソース API レスポンス</span>
+                    <span className="result-accordion-title">{t("app.resourceApiResponse")}</span>
                     {callerData ? (
                       <span className="result-accordion-badge badge-ready">
-                        取得済み
+                        {t("app.badges.ready")}
                         {getCallerType(callerData, accounts[0]?.username) && (
                           <span className={`badge-caller-type ${callerTypeCssClass(getCallerType(callerData, accounts[0]?.username))}`}>{getCallerType(callerData, accounts[0]?.username)}</span>
                         )}
                       </span>
                     ) : error ? (
-                      <span className="result-accordion-badge badge-error">取得失敗</span>
+                      <span className="result-accordion-badge badge-error">{t("app.badges.error")}</span>
                     ) : loading ? (
-                      <span className="result-accordion-badge badge-pending">取得中…</span>
+                      <span className="result-accordion-badge badge-pending">{t("app.badges.fetching")}</span>
                     ) : (
-                      <span className="result-accordion-badge badge-pending">未取得</span>
+                      <span className="result-accordion-badge badge-pending">{t("app.badges.pending")}</span>
                     )}
                   </summary>
                   <div className="result-accordion-body">
                     {loading ? (
-                      <div className="result-placeholder">読み込み中...</div>
+                      <div className="result-placeholder">{t("app.noAgent.loading")}</div>
                     ) : error ? (
-                      <div className="result-error">エラー: {error}</div>
+                      <div className="result-error">{t("app.noAgent.errorPrefix")} {error}</div>
                     ) : callerData ? (
                       <CallerInfo data={callerData} loading={false} error={null} />
                     ) : (
                       <div className="result-placeholder">
-                        「Identity Echo API を呼び出す」ボタンを押すと、リソース API のレスポンスがここに表示されます。
+                        {t("app.noAgent.placeholder")}
                       </div>
                     )}
                   </div>

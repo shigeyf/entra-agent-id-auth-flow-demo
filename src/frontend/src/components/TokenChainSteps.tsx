@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 interface StepResult {
   success: boolean;
@@ -54,11 +55,12 @@ function deriveSteps(data: TokenChainData): string[] {
 }
 
 const TokenChainSteps: React.FC<TokenChainStepsProps> = ({ data }) => {
+  const { t } = useTranslation();
   const steps = deriveSteps(data);
 
   return (
     <div className="token-chain">
-      <h4>Token Chain Flow</h4>
+      <h4>{t("tokenChain.heading")}</h4>
       <div className="token-chain-steps">
         {steps.map((key, i) => {
           const step = data[key];
@@ -71,10 +73,14 @@ const TokenChainSteps: React.FC<TokenChainStepsProps> = ({ data }) => {
                 <span className={`step-indicator ${step.success ? "success" : "failure"}`}>
                   {step.success ? "✓" : "✗"}
                 </span>
-                <span className="step-number">Step {i + 1}</span>
-                <span className="step-label">{meta.label}</span>
+                <span className="step-number">{t("tokenChain.step")} {i + 1}</span>
+                <span className="step-label">
+                  {t(`tokenChain.steps.${key}.label`, { defaultValue: meta.label })}
+                </span>
               </div>
-              <div className="step-description">{meta.description}</div>
+              <div className="step-description">
+                {t(`tokenChain.steps.${key}.description`, { defaultValue: meta.description })}
+              </div>
               {step.claims && (
                 <div className="step-claims">
                   <table>
