@@ -32,13 +32,8 @@ resource "null_resource" "acr_build" {
   }
 
   provisioner "local-exec" {
-    command = <<-EOT
-      az acr build \
-        --registry ${azurerm_container_registry.this.name} \
-        --image ${each.value.image_name}:${each.value.image_tag} \
-        --file ${each.value.build_context}/${each.value.dockerfile} \
-        ${each.value.build_context}
-    EOT
+    # Single line command for cross-platform compatibility (Windows/Linux/macOS)
+    command = "az acr build --registry ${azurerm_container_registry.this.name} --image ${each.value.image_name}:${each.value.image_tag} --file ${each.value.build_context}/${each.value.dockerfile} ${each.value.build_context}"
   }
 
   depends_on = [azurerm_container_registry.this]
