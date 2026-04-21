@@ -97,6 +97,8 @@ data "azapi_resource" "foundry_project" {
   type      = "Microsoft.CognitiveServices/accounts/projects@2025-12-01"
 
   response_export_values = ["properties"]
+
+  depends_on = [terraform_data.seed_agent]
 }
 
 output "foundry_agent_identity_id" {
