@@ -7,6 +7,7 @@ import {
   BrowserAuthError,
   InteractionRequiredAuthError,
 } from "@azure/msal-browser";
+import { useTranslation } from "react-i18next";
 import { interactiveOboRequest, foundryApiRequest } from "../authConfig";
 import {
   runInteractiveOboStream,
@@ -16,14 +17,14 @@ import type { ChatMessage } from "../api/backendApi";
 const TOOL_OPTIONS = [
   {
     value: "",
-    label: "Auto",
-    description: "LLM がメッセージ内容からツールを自動選択",
+    labelKey: "chat.auto",
+    descriptionKey: "chat.autoDescription",
     defaultMessage: "Call the resource API using the Interactive OBO flow.",
   },
   {
     value: "call_resource_api_interactive_obo",
-    label: "Interactive Agent OBO",
-    description: "Call Identity Echo API with Interactive OBO flow (delegated human user)",
+    labelKey: "oboPanel.tools.interactiveObo",
+    descriptionKey: "oboPanel.tools.interactiveOboDesc",
     defaultMessage: "Call the resource API using the Interactive OBO flow.",
   },
 ] as const;
@@ -46,6 +47,7 @@ const InteractiveOboPanel: React.FC<InteractiveOboPanelProps> = ({
 }) => {
   const { instance, accounts } = useMsal();
   const isAuthenticated = useIsAuthenticated();
+  const { t } = useTranslation();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState<string>(DEFAULT_MESSAGE);
@@ -236,14 +238,14 @@ const InteractiveOboPanel: React.FC<InteractiveOboPanelProps> = ({
       <div className="chat-panel">
         <div className="chat-panel-header">
           <div>
-            <h3>Interactive Agent (OBO) Flow</h3>
+            <h3>{t("oboPanel.heading")}</h3>
             <p className="chat-description">
-              SPA (MSAL login) → Foundry Hosted Agent (OBO exchange) → Identity Echo API
+              {t("oboPanel.descriptionShort")}
             </p>
           </div>
         </div>
         <div className="auth-section">
-          <p>Interactive Agent (OBO) フローを実行するにはサインインしてください。</p>
+          <p>{t("oboPanel.signInRequired")}</p>
         </div>
       </div>
     );
@@ -253,21 +255,21 @@ const InteractiveOboPanel: React.FC<InteractiveOboPanelProps> = ({
     <div className="chat-panel">
       <div className="chat-panel-header">
         <div>
-          <h3>Interactive Agent (OBO) Flow</h3>
+          <h3>{t("oboPanel.heading")}</h3>
           <p className="chat-description">
-            SPA (MSAL login) → Foundry Hosted Agent (Agent Identity On-behalf-of) → Identity Echo API
+            {t("oboPanel.descriptionFull")}
           </p>
         </div>
         {messages.length > 0 && !streaming && (
           <button className="btn btn-secondary btn-sm" onClick={handleClear}>
-            クリア
+            {t("chat.clear")}
           </button>
         )}
       </div>
 
       {/* Tool selection buttons */}
       <div className="tool-selector">
-        <span className="tool-selector-label">Tool:</span>
+        <span className="tool-selector-label">{t("chat.toolLabel")}</span>
         {TOOL_OPTIONS.map((opt) => (
           <button
             key={opt.value}
@@ -279,9 +281,9 @@ const InteractiveOboPanel: React.FC<InteractiveOboPanelProps> = ({
               setInput(opt.defaultMessage);
             }}
             disabled={streaming}
-            title={opt.description}
+            title={t(opt.descriptionKey)}
           >
-            {opt.label}
+            {t(opt.labelKey)}
           </button>
         ))}
       </div>
@@ -290,20 +292,19 @@ const InteractiveOboPanel: React.FC<InteractiveOboPanelProps> = ({
       <div className="chat-messages">
         {messages.length === 0 && (
           <div className="chat-empty">
-            メッセージを送信して Interactive Agent (OBO) Flow を実行します。
-            ログインユーザーの委任権限で Agent が Identity Echo API を呼び出します。
+            {t("oboPanel.emptyState")}
           </div>
         )}
 
         {messages.map((msg, i) => (
           <div key={i} className={`chat-bubble chat-${msg.role}`}>
             <div className="chat-role">
-              {msg.role === "user" ? "You" : "Agent"}
+              {msg.role === "user" ? t("chat.you") : t("chat.agent")}
             </div>
 
             {msg.toolOutput && (
               <details className="chat-json-details" open>
-                <summary>Tool Output (JSON)</summary>
+                <summary>{t("chat.toolOutputJson")}</summary>
                 <pre className="chat-json">
                   {JSON.stringify(msg.toolOutput, null, 2)}
                 </pre>
@@ -316,7 +317,7 @@ const InteractiveOboPanel: React.FC<InteractiveOboPanelProps> = ({
                 streaming &&
                 i === messages.length - 1 ? (
                   <span className="chat-typing">
-                    応答中
+                    {t("chat.responding")}
                     <span className="chat-typing-dots">
                       <span className="chat-typing-dot" />
                       <span className="chat-typing-dot" />
@@ -331,7 +332,7 @@ const InteractiveOboPanel: React.FC<InteractiveOboPanelProps> = ({
         <div ref={chatEndRef} />
       </div>
 
-      {error && <div className="chat-error">エラー: {error}</div>}
+      {error && <div className="chat-error">{t("chat.errorPrefix")} {error}</div>}
 
       {/* Input area */}
       <div className="chat-input-area">
@@ -340,14 +341,14 @@ const InteractiveOboPanel: React.FC<InteractiveOboPanelProps> = ({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="メッセージを入力..."
+          placeholder={t("chat.inputPlaceholder")}
           rows={2}
           disabled={streaming}
         />
         <div className="chat-actions">
           {streaming ? (
             <button className="btn btn-secondary" onClick={handleStop}>
-              停止
+              {t("chat.stop")}
             </button>
           ) : (
             <button
@@ -355,7 +356,7 @@ const InteractiveOboPanel: React.FC<InteractiveOboPanelProps> = ({
               onClick={handleSend}
               disabled={!input.trim()}
             >
-              送信
+              {t("chat.send")}
             </button>
           )}
         </div>

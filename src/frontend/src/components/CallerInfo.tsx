@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 const knownAppIds: Record<string, string> = Object.fromEntries(
   [
@@ -22,68 +23,82 @@ interface CallerInfoProps {
 }
 
 const CallerInfo: React.FC<CallerInfoProps> = ({ data, loading, error }) => {
+  const { t } = useTranslation();
+
   if (loading) {
-    return <div className="caller-info loading">読み込み中...</div>;
+    return <div className="caller-info loading">{t("callerInfo.loading")}</div>;
   }
 
   if (error) {
-    return <div className="caller-info error">エラー: {error}</div>;
+    return <div className="caller-info error">{t("callerInfo.errorPrefix")} {error}</div>;
   }
 
   if (!data) {
     return null;
   }
 
-  const { caller, humanReadable, resource, accessedAt } = data;
+  const { caller, resource, accessedAt } = data;
 
   if (!caller) {
     return (
       <div className="caller-info error">
-        レスポンスに caller 情報が含まれていません。
+        {t("callerInfo.noCallerInfo")}
       </div>
     );
   }
 
+  const callerDisplay = caller.upn || caller.displayName || caller.oid;
+  const localizedSummary =
+    caller.tokenKind === "delegated"
+      ? t("callerInfo.summaryDelegated", {
+          caller: callerDisplay,
+          scopes: caller.scopes?.length > 0 ? caller.scopes.join(", ") : t("callerInfo.none"),
+        })
+      : t("callerInfo.summaryAppOnly", {
+          roles: caller.roles?.length > 0 ? caller.roles.join(", ") : t("callerInfo.none"),
+          oid: caller.oid,
+        });
+
   return (
     <div className="caller-info">
-      <h3>リソース API レスポンス</h3>
+      <h3>{t("callerInfo.heading")}</h3>
 
       <div className="summary">
-        <p className="human-readable">{humanReadable}</p>
+        <p className="human-readable">{localizedSummary}</p>
       </div>
 
       <table>
         <tbody>
           <tr>
-            <th>Resource</th>
+            <th>{t("callerInfo.resource")}</th>
             <td>{resource}</td>
           </tr>
           <tr>
-            <th>Accessed At</th>
+            <th>{t("callerInfo.accessedAt")}</th>
             <td>{accessedAt}</td>
           </tr>
           <tr>
-            <th>Token Kind</th>
+            <th>{t("callerInfo.tokenKind")}</th>
             <td>
               <code>{caller.tokenKind}</code>
             </td>
           </tr>
           <tr>
-            <th>OID</th>
+            <th>{t("callerInfo.oid")}</th>
             <td>
               <code>{caller.oid}</code>
             </td>
           </tr>
           <tr>
-            <th>UPN</th>
+            <th>{t("callerInfo.upn")}</th>
             <td>{caller.upn || "—"}</td>
           </tr>
           <tr>
-            <th>Display Name</th>
+            <th>{t("callerInfo.displayName")}</th>
             <td>{caller.displayName || "—"}</td>
           </tr>
           <tr>
-            <th>App ID</th>
+            <th>{t("callerInfo.appId")}</th>
             <td>
               <code>{caller.appId || "—"}</code>
               {resolveAppLabel(caller.appId) && (
@@ -94,7 +109,7 @@ const CallerInfo: React.FC<CallerInfoProps> = ({ data, loading, error }) => {
             </td>
           </tr>
           <tr>
-            <th>Scopes</th>
+            <th>{t("callerInfo.scopes")}</th>
             <td>
               {caller.scopes?.length > 0
                 ? caller.scopes.map((s: string) => (
@@ -106,7 +121,7 @@ const CallerInfo: React.FC<CallerInfoProps> = ({ data, loading, error }) => {
             </td>
           </tr>
           <tr>
-            <th>Roles</th>
+            <th>{t("callerInfo.roles")}</th>
             <td>
               {caller.roles?.length > 0
                 ? caller.roles.map((r: string) => (
@@ -121,7 +136,7 @@ const CallerInfo: React.FC<CallerInfoProps> = ({ data, loading, error }) => {
       </table>
 
       <details>
-        <summary>生 JSON レスポンス</summary>
+        <summary>{t("callerInfo.rawJson")}</summary>
         <pre>{JSON.stringify(data, null, 2)}</pre>
       </details>
     </div>

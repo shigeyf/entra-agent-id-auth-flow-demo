@@ -35,15 +35,15 @@ def _build_caller_response(claims: dict) -> dict:
         "roles": roles,
     }
 
-    # Human-readable summary
+    # Human-readable summary (English; frontend renders localized text)
     caller_display = caller["upn"] or caller["displayName"] or caller["oid"]
     if caller_type == "delegated":
-        scope_str = ", ".join(scopes) if scopes else "なし"
-        human_readable = f"{caller_display} の委任権限 ({scope_str}) でアクセスされました"
+        scope_str = ", ".join(scopes) if scopes else "none"
+        human_readable = f"Accessed with delegated permissions ({scope_str}) of {caller_display}"
     else:
-        role_str = ", ".join(roles) if roles else "なし"
+        role_str = ", ".join(roles) if roles else "none"
         human_readable = (
-            f"アプリケーション権限 ({role_str}) でアクセスされました (OID: {caller['oid']})"
+            f"Accessed with application permissions ({role_str}) (OID: {caller['oid']})"
         )
 
     return {

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   runAutonomousAppStream,
   type ChatMessage,
@@ -11,26 +12,26 @@ const DEFAULT_MESSAGE =
 const TOOL_OPTIONS = [
   {
     value: "",
-    label: "Auto",
-    description: "LLM がメッセージ内容からツールを自動選択",
+    labelKey: "chat.auto",
+    descriptionKey: "chat.autoDescription",
     defaultMessage: "Please call the resource API using autonomous agent app flow.",
   },
   {
     value: "call_resource_api_autonomous_app",
-    label: "Autonomous Agent App",
-    description: "Call Identity Echo API with Entra Agent Identity (App)",
+    labelKey: "autonomousPanel.tools.autonomousApp",
+    descriptionKey: "autonomousPanel.tools.autonomousAppDesc",
     defaultMessage: "Call the resource API using autonomous agent app flow.",
   },
   {
     value: "call_resource_api_autonomous_user",
-    label: "Autonomous Agent User",
-    description: "Call Identity Echo API with Entra Agent Identity (User)",
+    labelKey: "autonomousPanel.tools.autonomousUser",
+    descriptionKey: "autonomousPanel.tools.autonomousUserDesc",
     defaultMessage: "Call the resource API using autonomous agent user flow.",
   },
   {
     value: "check_agent_environment",
-    label: "Check Environment",
-    description: "Check the agent runtime environment and Azure credentials",
+    labelKey: "autonomousPanel.tools.checkEnv",
+    descriptionKey: "autonomousPanel.tools.checkEnvDesc",
     defaultMessage: "Check the agent runtime environment and Azure credentials.",
   },
 ] as const;
@@ -52,6 +53,7 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
   onStreamComplete,
   onClear,
 }) => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState(DEFAULT_MESSAGE);
   const [streaming, setStreaming] = useState(false);
@@ -199,21 +201,21 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
     <div className="chat-panel">
       <div className="chat-panel-header">
         <div>
-          <h3>Autonomous Agent Flow</h3>
+          <h3>{t("autonomousPanel.heading")}</h3>
           <p className="chat-description">
-            Backend API (MSI) → Foundry Hosted Agent (Agent Identity) → Identity Echo API
+            {t("autonomousPanel.description")}
           </p>
         </div>
         {messages.length > 0 && !streaming && (
           <button className="btn btn-secondary btn-sm" onClick={handleClear}>
-            クリア
+            {t("chat.clear")}
           </button>
         )}
       </div>
 
       {/* Tool selection buttons */}
       <div className="tool-selector">
-        <span className="tool-selector-label">Tool:</span>
+        <span className="tool-selector-label">{t("chat.toolLabel")}</span>
         {TOOL_OPTIONS.map((opt) => (
           <button
             key={opt.value}
@@ -225,9 +227,9 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
               setInput(opt.defaultMessage);
             }}
             disabled={streaming}
-            title={opt.description}
+            title={t(opt.descriptionKey)}
           >
-            {opt.label}
+            {t(opt.labelKey)}
           </button>
         ))}
       </div>
@@ -236,20 +238,20 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
       <div className="chat-messages">
         {messages.length === 0 && (
           <div className="chat-empty">
-            メッセージを送信して Autonomous Agent Flow を実行します。
+            {t("autonomousPanel.emptyState")}
           </div>
         )}
 
         {messages.map((msg, i) => (
           <div key={i} className={`chat-bubble chat-${msg.role}`}>
             <div className="chat-role">
-              {msg.role === "user" ? "You" : "Agent"}
+              {msg.role === "user" ? t("chat.you") : t("chat.agent")}
             </div>
 
             {/* Tool output JSON shown as a code block */}
             {msg.toolOutput && (
               <details className="chat-json-details" open>
-                <summary>Tool Output (JSON)</summary>
+                <summary>{t("chat.toolOutputJson")}</summary>
                 <pre className="chat-json">
                   {JSON.stringify(msg.toolOutput, null, 2)}
                 </pre>
@@ -262,7 +264,7 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
                 streaming &&
                 i === messages.length - 1 ? (
                   <span className="chat-typing">
-                    応答中
+                    {t("chat.responding")}
                     <span className="chat-typing-dots">
                       <span className="chat-typing-dot" />
                       <span className="chat-typing-dot" />
@@ -277,7 +279,7 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
         <div ref={chatEndRef} />
       </div>
 
-      {error && <div className="chat-error">エラー: {error}</div>}
+      {error && <div className="chat-error">{t("chat.errorPrefix")} {error}</div>}
 
       {/* Input area */}
       <div className="chat-input-area">
@@ -286,14 +288,14 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="メッセージを入力..."
+          placeholder={t("chat.inputPlaceholder")}
           rows={2}
           disabled={streaming}
         />
         <div className="chat-actions">
           {streaming ? (
             <button className="btn btn-secondary" onClick={handleStop}>
-              停止
+              {t("chat.stop")}
             </button>
           ) : (
             <button
@@ -301,7 +303,7 @@ const AutonomousChatPanel: React.FC<AutonomousChatPanelProps> = ({
               onClick={handleSend}
               disabled={!input.trim()}
             >
-              送信
+              {t("chat.send")}
             </button>
           )}
         </div>

@@ -1,0 +1,140 @@
+{
+  "topbar": {
+    "title": "Foundry Hosted Agent + Entra Agent ID Demo",
+    "signIn": "Sign In",
+    "signOut": "Sign Out"
+  },
+  "app": {
+    "heading": "Foundry Hosted Agent + Entra Agent ID Demo",
+    "subtitle": "A demo that visualizes how Microsoft Foundry's Hosted Agent accesses external APIs using both the Entra Agent ID Autonomous Agent flow (application permissions) and the Agent User OBO flow (delegated permissions), showing the contents of access tokens and \"who's permissions were used\" via the Identity Echo API.",
+    "tabs": {
+      "autonomousAgent": "Autonomous Agent Flow",
+      "interactiveObo": "Interactive Agent (OBO) Flow",
+      "noAgent": "No Agent Flow"
+    },
+    "resourceApiResponse": "Resource API Response",
+    "tokenChainFlow": "Token Chain Flow",
+    "badges": {
+      "ready": "Retrieved",
+      "error": "Failed",
+      "notExecuted": "Not Executed",
+      "pending": "Pending",
+      "partialFailure": "Partial Failure",
+      "fetching": "Fetching…"
+    },
+    "autonomous": {
+      "noCallerInfo": "Failed to retrieve the Identity Echo API response. Please check Token Chain Flow Step 3.",
+      "noResourceApi": "The agent response did not contain a Resource API response. Please check your query.",
+      "placeholder": "The Resource API response will be displayed here when the agent executes the Autonomous Agent Flow.",
+      "noTokenChain": "The agent response did not contain Token Chain data. Please check your query.",
+      "tokenChainPlaceholder": "Token Chain results will be displayed here when the agent executes the Autonomous Agent Flow."
+    },
+    "obo": {
+      "noCallerInfo": "Failed to retrieve the Identity Echo API response. Please check Token Chain Flow Step 3.",
+      "noResourceApi": "The agent response did not contain a Resource API response.",
+      "placeholder": "The Resource API response will be displayed here when the Interactive OBO Flow is executed.",
+      "noTokenChain": "The agent response did not contain Token Chain data.",
+      "tokenChainPlaceholder": "Token Chain results will be displayed here when the Interactive OBO Flow is executed."
+    },
+    "noAgent": {
+      "signInRequired": "Please sign in to call the Identity Echo API.",
+      "loggedInAs": "Logged in as:",
+      "callApi": "Call Identity Echo API directly",
+      "calling": "Calling...",
+      "loading": "Loading...",
+      "errorPrefix": "Error:",
+      "placeholder": "Press the \"Call Identity Echo API\" button to display the Resource API response here."
+    }
+  },
+  "chat": {
+    "clear": "Clear",
+    "toolLabel": "Tool:",
+    "auto": "Auto",
+    "autoDescription": "LLM automatically selects tool based on message content",
+    "you": "You",
+    "agent": "Agent",
+    "toolOutputJson": "Tool Output (JSON)",
+    "responding": "Responding",
+    "errorPrefix": "Error:",
+    "inputPlaceholder": "Enter a message...",
+    "stop": "Stop",
+    "send": "Send"
+  },
+  "autonomousPanel": {
+    "heading": "Autonomous Agent Flow",
+    "description": "Backend API (MSI) → Foundry Hosted Agent (Agent Identity) → Identity Echo API",
+    "emptyState": "Send a message to execute the Autonomous Agent Flow.",
+    "tools": {
+      "autonomousApp": "Autonomous Agent App",
+      "autonomousAppDesc": "Call Identity Echo API with Entra Agent Identity (App)",
+      "autonomousUser": "Autonomous Agent User",
+      "autonomousUserDesc": "Call Identity Echo API with Entra Agent Identity (User)",
+      "checkEnv": "Check Environment",
+      "checkEnvDesc": "Check the agent runtime environment and Azure credentials"
+    }
+  },
+  "oboPanel": {
+    "heading": "Interactive Agent (OBO) Flow",
+    "descriptionShort": "SPA (MSAL login) → Foundry Hosted Agent (OBO exchange) → Identity Echo API",
+    "descriptionFull": "SPA (MSAL login) → Foundry Hosted Agent (Agent Identity On-behalf-of) → Identity Echo API",
+    "signInRequired": "Please sign in to execute the Interactive Agent (OBO) flow.",
+    "emptyState": "Send a message to execute the Interactive Agent (OBO) Flow.\nThe agent will call the Identity Echo API with the logged-in user's delegated permissions.",
+    "tools": {
+      "interactiveObo": "Interactive Agent OBO",
+      "interactiveOboDesc": "Call Identity Echo API with Interactive OBO flow (delegated human user)"
+    }
+  },
+  "callerInfo": {
+    "loading": "Loading...",
+    "errorPrefix": "Error:",
+    "noCallerInfo": "The response does not contain caller information.",
+    "heading": "Resource API Response",
+    "summaryDelegated": "Accessed with delegated permissions ({{scopes}}) of {{caller}}",
+    "summaryAppOnly": "Accessed with application permissions ({{roles}}) (OID: {{oid}})",
+    "none": "none",
+    "resource": "Resource",
+    "accessedAt": "Accessed At",
+    "tokenKind": "Token Kind",
+    "oid": "OID",
+    "upn": "UPN",
+    "displayName": "Display Name",
+    "appId": "App ID",
+    "scopes": "Scopes",
+    "roles": "Roles",
+    "rawJson": "Raw JSON Response"
+  },
+  "tokenChain": {
+    "heading": "Token Chain Flow",
+    "step": "Step",
+    "steps": {
+      "step1_get_t1": {
+        "label": "Acquire T1",
+        "description": "Project MSI → Agent Blueprint Identity Token (T1)"
+      },
+      "step2_exchange_app_token": {
+        "label": "Acquire TR (App)",
+        "description": "T1 → Agent Identity Token (TR) via client_credentials for resource API access"
+      },
+      "step3_call_resource_api": {
+        "label": "API Call",
+        "description": "Access Identity Echo API with Bearer TR"
+      },
+      "step2_exchange_user_t2": {
+        "label": "Acquire T2",
+        "description": "T1 → Agent Identity Token (T2) via client_credentials"
+      },
+      "step3_exchange_user_token": {
+        "label": "Acquire TR (User)",
+        "description": "T2 + Agent User UPN → Delegated Token (TR) via user_fic grant"
+      },
+      "step4_call_resource_api": {
+        "label": "API Call",
+        "description": "Access Identity Echo API with Bearer TR (delegated)"
+      }
+    }
+  },
+  "language": {
+    "ja": "日本語",
+    "en": "English"
+  }
+}
