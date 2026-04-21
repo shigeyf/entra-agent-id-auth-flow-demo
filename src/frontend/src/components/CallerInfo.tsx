@@ -1,5 +1,19 @@
 import React from "react";
 
+const knownAppIds: Record<string, string> = Object.fromEntries(
+  [
+    [import.meta.env.ENTRA_SPA_APP_CLIENT_ID, "SPA Client"],
+    [import.meta.env.ENTRA_RESOURCE_API_CLIENT_ID, "Identity Echo API"],
+    [import.meta.env.ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID, "Agent Blueprint Identity"],
+    [import.meta.env.ENTRA_AGENT_IDENTITY_CLIENT_ID, "Agent Identity"],
+  ].filter(([id]) => id)
+);
+
+function resolveAppLabel(appId: string | undefined): string | null {
+  if (!appId) return null;
+  return knownAppIds[appId] ?? null;
+}
+
 interface CallerInfoProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any | null;
@@ -72,6 +86,11 @@ const CallerInfo: React.FC<CallerInfoProps> = ({ data, loading, error }) => {
             <th>App ID</th>
             <td>
               <code>{caller.appId || "—"}</code>
+              {resolveAppLabel(caller.appId) && (
+                <span style={{ marginLeft: 8, opacity: 0.7 }}>
+                  ({resolveAppLabel(caller.appId)})
+                </span>
+              )}
             </td>
           </tr>
           <tr>
