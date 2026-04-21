@@ -24,6 +24,8 @@ resource "azuread_application" "client_spa" {
 
   sign_in_audience = "AzureADMyOrg"
 
+  owners = [data.azurerm_client_config.current.object_id]
+
   single_page_application {
     redirect_uris = concat(
       var.client_app_redirect_uris,
