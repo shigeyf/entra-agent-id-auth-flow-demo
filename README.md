@@ -86,11 +86,16 @@ This embodies the core value of Entra Agent ID — **a single agent can switch b
 
 #### Azure / Entra ID Permissions
 
-| Scope              | Required Role                 | Purpose                                                                                                                                      |
-| ------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Azure Subscription | **Contributor**               | Create resource groups, Foundry, Container Apps, ACR, etc.                                                                                   |
-| Azure Subscription | **User Access Administrator** | Assign RBAC roles between services (Managed Identity → ACR, Foundry, etc.)                                                                   |
-| Entra ID Tenant    | **Application Administrator** | Create App Registrations, define API scopes, set up Entra Agent ID (Blueprint FIC configuration, App Role grants, Agent User creation, etc.) |
+| Scope              | Required Role                                                                     | Purpose                                                                                                                                                                                                |
+| ------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Azure Subscription | **Owner**, or **Contributor** + **User Access Administrator**                     | Create resource groups, Foundry, Container Apps, ACR, SWA, etc. and assign RBAC roles between services (Managed Identity → ACR, Foundry, etc.)                                                         |
+| Entra ID Tenant    | **Application Administrator** (or at minimum **Cloud Application Administrator**) | Create App Registrations & Enterprise Applications (Service Principals), set Application ID URIs, define API scopes, set up Entra Agent ID (Blueprint FIC, App Role grants, Agent User creation, etc.) |
+
+> **Deploying to a different tenant?** If you see `Authorization_RequestDenied` (403) errors when
+> Terraform creates Service Principals or sets Identifier URIs, your account lacks the required
+> Entra ID directory role in that tenant. Ask the tenant administrator to assign at least the
+> **Cloud Application Administrator** role. Also verify that **"Users can register applications"**
+> is set to **Yes** in the Entra admin center (Identity → Users → User settings).
 
 #### Option A: Dev Container / GitHub Codespaces (Recommended)
 
