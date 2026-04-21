@@ -9,6 +9,8 @@ resource "azuread_application" "resource_api" {
 
   sign_in_audience = "AzureADMyOrg"
 
+  owners = [data.azurerm_client_config.current.object_id]
+
   # App ID URI — set after creation via azuread_application_identifier_uri
   # (identifier_uris requires the Application ID which is computed)
 

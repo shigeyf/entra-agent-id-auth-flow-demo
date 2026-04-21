@@ -11,16 +11,26 @@ This guide walks you through setting up and deploying the Entra Agent ID demo ap
 
 ### Azure Account & Permissions
 
-| Scope              | Required Role                 | Purpose                                                                                                                                      |
-| ------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Azure Subscription | **Contributor**               | Create resource groups, Foundry, Container Apps, ACR, SWA, etc.                                                                              |
-| Azure Subscription | **User Access Administrator** | Assign RBAC roles between services (Managed Identity → ACR, Foundry, etc.)                                                                   |
-| Entra ID Tenant    | **Application Administrator** | Create App Registrations, define API scopes, set up Entra Agent ID (Blueprint FIC configuration, App Role grants, Agent User creation, etc.) |
-| Azure CLI          | Logged in via `az login`      | Used by Terraform and deployment scripts                                                                                                     |
+| Scope              | Required Role                                                                     | Purpose                                                                                                                                                                                                |
+| ------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Azure Subscription | **Owner**, or **Contributor** + **User Access Administrator**                     | Create resource groups, Foundry, Container Apps, ACR, SWA, etc. and assign RBAC roles between services (Managed Identity → ACR, Foundry, etc.)                                                         |
+| Entra ID Tenant    | **Application Administrator** (or at minimum **Cloud Application Administrator**) | Create App Registrations & Enterprise Applications (Service Principals), set Application ID URIs, define API scopes, set up Entra Agent ID (Blueprint FIC, App Role grants, Agent User creation, etc.) |
+| Azure CLI          | Logged in via `az login`                                                          | Used by Terraform and deployment scripts                                                                                                                                                               |
 
 > **Entra Agent ID scripts**: Setup scripts such as `set-blueprint-fic.py` use MSAL interactive
 > login to acquire Graph API delegated scopes (`AgentIdentityBlueprint.ReadWrite.All`, etc.).
 > These operations are available with the Application Administrator role.
+>
+> **Deploying to a different tenant?** If you see `Authorization_RequestDenied` (403) errors when
+> Terraform creates Service Principals or sets Identifier URIs, your account lacks the required
+> Entra ID directory role in that tenant. Ask the tenant administrator to assign at least the
+> **Cloud Application Administrator** role. Also verify that **"Users can register applications"**
+> is set to **Yes** in the Entra admin center (Identity → Users → User settings).
+>
+> | Error Message                                                                         | Cause                                                                           | Required Role                             |
+> | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------- |
+> | `backing application of the service principal being created must in the local tenant` | Insufficient permissions to create Enterprise Applications (Service Principals) | Cloud Application Administrator or higher |
+> | `Insufficient privileges to complete the operation` (on Identifier URI)               | Insufficient permissions to set Application ID URI (`api://...`)                | Cloud Application Administrator or higher |
 
 ### Development Tools
 

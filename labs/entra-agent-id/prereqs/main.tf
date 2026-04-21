@@ -16,6 +16,8 @@ data "azuread_service_principal" "msgraph" {
 
 data "azuread_client_config" "current" {}
 
+data "azurerm_client_config" "current" {}
+
 locals {
   # Build a map of scope name → scope ID from the Microsoft Graph SP
   msgraph_scope_map = {
@@ -68,6 +70,8 @@ locals {
 resource "azuread_application" "agent_id_manager" {
   display_name     = var.app_display_name
   sign_in_audience = "AzureADMyOrg"
+
+  owners = [data.azurerm_client_config.current.object_id]
 
   fallback_public_client_enabled = true
 

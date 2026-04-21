@@ -11,16 +11,26 @@
 
 ### Azure アカウント・権限
 
-| 対象                     | 必要な権限                    | 用途                                                                                                                          |
-| ------------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Azure サブスクリプション | **Contributor**               | リソースグループ、Foundry、Container Apps、ACR、SWA 等の作成                                                                  |
-| Azure サブスクリプション | **User Access Administrator** | サービス間 RBAC ロール割り当て (Managed Identity → ACR、Foundry 等)                                                           |
-| Entra ID テナント        | **Application Administrator** | App Registration の作成・API スコープ定義、Entra Agent ID セットアップ (Blueprint FIC 設定、App Role 付与、Agent User 作成等) |
-| Azure CLI                | `az login` 済み               | Terraform、デプロイスクリプトが使用                                                                                           |
+| 対象                     | 必要な権限                                                                 | 用途                                                                                                                                                                                                 |
+| ------------------------ | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Azure サブスクリプション | **Owner**、または **Contributor** + **User Access Administrator**          | リソースグループ、Foundry、Container Apps、ACR、SWA 等の作成、およびサービス間 RBAC ロール割り当て (Managed Identity → ACR、Foundry 等)                                                              |
+| Entra ID テナント        | **Application Administrator** (最低限 **Cloud Application Administrator**) | App Registration・Enterprise Application (Service Principal) の作成、Application ID URI の設定、API スコープ定義、Entra Agent ID セットアップ (Blueprint FIC 設定、App Role 付与、Agent User 作成等) |
+| Azure CLI                | `az login` 済み                                                            | Terraform、デプロイスクリプトが使用                                                                                                                                                                  |
 
 > **Entra Agent ID 関連スクリプト**: `set-blueprint-fic.py` 等のセットアップスクリプトは
 > MSAL 対話ログインで Graph API 委任スコープ (`AgentIdentityBlueprint.ReadWrite.All` 等) を取得します。
 > Application Administrator ロールがあればこれらの操作は実行可能です。
+>
+> **別テナントへのデプロイ時の注意**: Terraform による Service Principal の作成や Identifier URI の
+> 設定で `Authorization_RequestDenied` (403) エラーが発生する場合、対象テナントでの Entra ID
+> ディレクトリロールが不足しています。テナント管理者に最低限 **Cloud Application Administrator**
+> ロールの割り当てを依頼してください。また、Entra 管理センター (Identity → Users → User settings)
+> で **「ユーザーがアプリケーションを登録できる」** が **Yes** になっていることを確認してください。
+>
+> | エラーメッセージ                                                                      | 原因                                                      | 必要なロール                         |
+> | ------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------ |
+> | `backing application of the service principal being created must in the local tenant` | Enterprise Application (Service Principal) の作成権限不足 | Cloud Application Administrator 以上 |
+> | `Insufficient privileges to complete the operation` (Identifier URI)                  | Application ID URI (`api://...`) の設定権限不足           | Cloud Application Administrator 以上 |
 
 ### 開発ツール
 
