@@ -1,28 +1,30 @@
 # Backend API
 
-SPA からの Autonomous Agent フローを仲介する FastAPI サーバーです。
-SPA からの HTTP リクエストを受け取り、Foundry Hosted Agent を呼び出して結果を返します。
+[English](./README.md) | [日本語](./README.ja.md)
 
-## 役割
+A FastAPI server that mediates Autonomous Agent flows from the SPA.
+It receives HTTP requests from the SPA, invokes the Foundry Hosted Agent, and returns the results.
+
+## Role
 
 ```text
 SPA (Frontend) → Backend API → Foundry Hosted Agent → Identity Echo API
 ```
 
-- SPA から Autonomous フローのリクエストを受け付ける
-- Foundry Hosted Agent を OpenAI Responses API 経由で呼び出す
-- Agent の応答を JSON または SSE ストリームで SPA に返す
-- Azure Managed Identity (`DefaultAzureCredential`) で Foundry に認証
+- Accepts Autonomous flow requests from the SPA
+- Invokes the Foundry Hosted Agent via the OpenAI Responses API
+- Returns the Agent's response to the SPA as JSON or SSE stream
+- Authenticates to Foundry using Azure Managed Identity (`DefaultAzureCredential`)
 
-## API エンドポイント
+## API Endpoints
 
-| メソッド | パス                              | 説明                              | 認証 |
-| -------- | --------------------------------- | --------------------------------- | ---- |
-| GET      | `/health`                         | ヘルスチェック                    | なし |
-| POST     | `/api/demo/autonomous/app`        | Autonomous Agent 呼び出し         | なし |
-| POST     | `/api/demo/autonomous/app/stream` | Autonomous Agent (SSE ストリーム) | なし |
+| Method | Path                              | Description                   | Auth |
+| ------ | --------------------------------- | ----------------------------- | ---- |
+| GET    | `/health`                         | Health check                  | None |
+| POST   | `/api/demo/autonomous/app`        | Autonomous Agent invocation   | None |
+| POST   | `/api/demo/autonomous/app/stream` | Autonomous Agent (SSE stream) | None |
 
-### リクエスト
+### Request
 
 ```json
 {
@@ -31,58 +33,58 @@ SPA (Frontend) → Backend API → Foundry Hosted Agent → Identity Echo API
 }
 ```
 
-- `message`: Agent へのプロンプト
-- `force_tool` (省略可): 使用する Tool を指定
+- `message`: Prompt for the Agent
+- `force_tool` (optional): Specifies which Tool to use
 
-### レスポンス
+### Response
 
 - `/autonomous/app`: JSON (`{"tool_output": {...}, "agent_message": "..."}`)
-- `/autonomous/app/stream`: Server-Sent Events (OpenAI Responses API フォーマット)
+- `/autonomous/app/stream`: Server-Sent Events (OpenAI Responses API format)
 
-## 環境変数
+## Environment Variables
 
-| 変数                       | 説明                           | 必須 |
-| -------------------------- | ------------------------------ | ---- |
-| `FOUNDRY_PROJECT_ENDPOINT` | Foundry Project エンドポイント | ✅   |
-| `ENTRA_TENANT_ID`          | Entra ID テナント ID           | ✅   |
-| `FRONTEND_SPA_APP_URL`     | SPA の URL (CORS 許可リスト用) | —    |
+| Variable                   | Description                   | Required |
+| -------------------------- | ----------------------------- | -------- |
+| `FOUNDRY_PROJECT_ENDPOINT` | Foundry Project endpoint      | ✅       |
+| `ENTRA_TENANT_ID`          | Entra ID tenant ID            | ✅       |
+| `FRONTEND_SPA_APP_URL`     | SPA URL (for CORS allow list) | —        |
 
 ## CORS
 
-| オリジン                  | 用途              |
-| ------------------------- | ----------------- |
-| `http://localhost:5173`   | Vite 開発サーバー |
-| `http://localhost:4173`   | Vite プレビュー   |
-| `${FRONTEND_SPA_APP_URL}` | クラウド SWA      |
+| Origin                    | Purpose         |
+| ------------------------- | --------------- |
+| `http://localhost:5173`   | Vite dev server |
+| `http://localhost:4173`   | Vite preview    |
+| `${FRONTEND_SPA_APP_URL}` | Cloud SWA       |
 
-## ディレクトリ構成
+## Directory Structure
 
 ```text
 src/backend_api/
-├── main.py              # FastAPI アプリ初期化・CORS
-├── config.py            # 環境変数読み込み
-├── foundry_client.py    # Foundry Agent 呼び出しロジック
+├── main.py              # FastAPI app initialization & CORS
+├── config.py            # Environment variable loading
+├── foundry_client.py    # Foundry Agent invocation logic
 ├── routes/
-│   └── call_foundry_agent.py  # エンドポイントハンドラ
-├── Dockerfile           # python:3.11-slim ベース
-└── requirements.txt     # 依存パッケージ
+│   └── call_foundry_agent.py  # Endpoint handlers
+├── Dockerfile           # Based on python:3.11-slim
+└── requirements.txt     # Dependencies
 ```
 
-## ローカル起動
+## Local Development
 
 ```bash
 cd src && uvicorn backend_api.main:app --reload --port 8080
 ```
 
-> Foundry に接続するため、`az login` 済みである必要があります
-> (`DefaultAzureCredential` がローカルの Azure CLI 資格情報を使用します)。
+> You must be logged in with `az login` to connect to Foundry
+> (`DefaultAzureCredential` uses local Azure CLI credentials).
 
-## デプロイ
+## Deployment
 
-Container Apps へのデプロイ:
+Deploy to Container Apps:
 
 ```bash
 python src/scripts/deploy-container-apps.py backend-api
 ```
 
-詳細は [docs/deployment.md](../../docs/deployment.md) を参照してください。
+See [docs/deployment.md](../../docs/deployment.md) for details.
