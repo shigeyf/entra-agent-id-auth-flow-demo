@@ -1,46 +1,48 @@
 # Infrastructure (Terraform)
 
-このディレクトリには、デモアプリの Azure リソースをプロビジョニングする Terraform テンプレートが含まれています。
+[English](./README.md) | [日本語](./README.ja.md)
 
-## クイックスタート
+This directory contains Terraform templates for provisioning the Azure resources used by the demo app.
+
+## Quick Start
 
 ```bash
 cd src/infra
 
-# 変数ファイルを作成 (初回のみ)
+# Create variables file (first time only)
 cp terraform.tfvars.example terraform.tfvars
-# terraform.tfvars を編集して tenant_id, subscription_id 等を設定
+# Edit terraform.tfvars to set tenant_id, subscription_id, etc.
 
 terraform init
 terraform plan
 terraform apply
 ```
 
-## ファイル構成の概要
+## File Structure Overview
 
-| ファイル                                       | 内容                                       |
-| ---------------------------------------------- | ------------------------------------------ |
-| `terraform.tf`                                 | Terraform・プロバイダーのバージョン制約    |
-| `providers.tf`                                 | プロバイダー設定                           |
-| `_variables*.tf`                               | 入力変数 (コア, タグ, Foundry, Apps 等)    |
-| `_locals*.tf`                                  | 命名規則・計算値                           |
-| `data.tf`                                      | データソース                               |
-| `main.rg.tf`                                   | Resource Group                             |
-| `main.cognitive*.tf`                           | Foundry Resource, Project, Capability Host |
-| `main.acr.tf`                                  | Azure Container Registry                   |
-| `main.containerapp*.tf`                        | Container Apps 環境・アプリ                |
-| `main.adapp*.tf`                               | Entra ID App Registration                  |
-| `main.swa.tf`                                  | Static Web App                             |
-| `main.rbac*.tf`                                | RBAC ロール割り当て                        |
-| `main.loganalytics.tf` / `main.appinsights.tf` | 監視リソース                               |
-| `outputs.tf`                                   | 出力値 (`sync-infra-env.py` が参照)        |
+| File                                           | Contents                                    |
+| ---------------------------------------------- | ------------------------------------------- |
+| `terraform.tf`                                 | Terraform & provider version constraints    |
+| `providers.tf`                                 | Provider configuration                      |
+| `_variables*.tf`                               | Input variables (core, tags, Foundry, Apps) |
+| `_locals*.tf`                                  | Naming conventions & computed values        |
+| `data.tf`                                      | Data sources                                |
+| `main.rg.tf`                                   | Resource Group                              |
+| `main.cognitive*.tf`                           | Foundry Resource, Project, Capability Host  |
+| `main.acr.tf`                                  | Azure Container Registry                    |
+| `main.containerapp*.tf`                        | Container Apps environment & apps           |
+| `main.adapp*.tf`                               | Entra ID App Registration                   |
+| `main.swa.tf`                                  | Static Web App                              |
+| `main.rbac*.tf`                                | RBAC role assignments                       |
+| `main.loganalytics.tf` / `main.appinsights.tf` | Monitoring resources                        |
+| `outputs.tf`                                   | Outputs (referenced by `sync-infra-env.py`) |
 
-## 詳細ドキュメント
+## Detailed Documentation
 
-リソース構成、変数リファレンス、RBAC 一覧、命名規則、既知の注意点については:
+For resource structure, variable reference, RBAC list, naming conventions, and known caveats:
 
 - [Infrastructure Guide](../../docs/infrastructure.md)
 
-セットアップ手順については:
+For setup instructions:
 
-- [Getting Started](../../docs/getting-started.md) — セクション 2: Terraform
+- [Getting Started](../../docs/getting-started.md) — Section 2: Terraform

@@ -1,66 +1,68 @@
 # Getting Started
 
-このガイドでは、Entra Agent ID デモアプリの環境構築からデプロイまでの手順を説明します。
+[English](./getting-started.md) | [日本語](./getting-started.ja.md)
 
-> **注意**: Entra Agent ID の 3 フローを試すには Azure へのデプロイが必要です。
-> Foundry Hosted Agent は Azure 上でのみ動作するため、ローカル実行だけではデモの主要機能を利用できません。
+This guide walks you through setting up and deploying the Entra Agent ID demo app.
 
-## 前提条件
+> **Note**: Deploying to Azure is required to try all three Entra Agent ID flows.
+> The Foundry Hosted Agent only runs on Azure, so the demo's core features are not available with local execution alone.
 
-### Azure アカウント・権限
+## Prerequisites
 
-| 対象                     | 必要な権限                    | 用途                                                                                                                          |
-| ------------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Azure サブスクリプション | **Contributor**               | リソースグループ、Foundry、Container Apps、ACR、SWA 等の作成                                                                  |
-| Azure サブスクリプション | **User Access Administrator** | サービス間 RBAC ロール割り当て (Managed Identity → ACR、Foundry 等)                                                           |
-| Entra ID テナント        | **Application Administrator** | App Registration の作成・API スコープ定義、Entra Agent ID セットアップ (Blueprint FIC 設定、App Role 付与、Agent User 作成等) |
-| Azure CLI                | `az login` 済み               | Terraform、デプロイスクリプトが使用                                                                                           |
+### Azure Account & Permissions
 
-> **Entra Agent ID 関連スクリプト**: `set-blueprint-fic.py` 等のセットアップスクリプトは
-> MSAL 対話ログインで Graph API 委任スコープ (`AgentIdentityBlueprint.ReadWrite.All` 等) を取得します。
-> Application Administrator ロールがあればこれらの操作は実行可能です。
+| Scope              | Required Role                 | Purpose                                                                                                                                      |
+| ------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Azure Subscription | **Contributor**               | Create resource groups, Foundry, Container Apps, ACR, SWA, etc.                                                                              |
+| Azure Subscription | **User Access Administrator** | Assign RBAC roles between services (Managed Identity → ACR, Foundry, etc.)                                                                   |
+| Entra ID Tenant    | **Application Administrator** | Create App Registrations, define API scopes, set up Entra Agent ID (Blueprint FIC configuration, App Role grants, Agent User creation, etc.) |
+| Azure CLI          | Logged in via `az login`      | Used by Terraform and deployment scripts                                                                                                     |
 
-### 開発ツール
+> **Entra Agent ID scripts**: Setup scripts such as `set-blueprint-fic.py` use MSAL interactive
+> login to acquire Graph API delegated scopes (`AgentIdentityBlueprint.ReadWrite.All`, etc.).
+> These operations are available with the Application Administrator role.
 
-| ツール        | バージョン                   | インストール                                                                 |
-| ------------- | ---------------------------- | ---------------------------------------------------------------------------- |
-| **Terraform** | >= 1.9, < 2.0                | [Install Terraform](https://developer.hashicorp.com/terraform/install)       |
-| **Azure CLI** | 最新                         | [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) |
-| **Python**    | >= 3.12                      | [python.org](https://www.python.org/)                                        |
-| **uv**        | 最新                         | [Install uv](https://docs.astral.sh/uv/getting-started/installation/)        |
-| **Node.js**   | >= 20                        | [nodejs.org](https://nodejs.org/)                                            |
-| **Docker**    | 最新 (Hosted Agent ビルド時) | [Install Docker](https://docs.docker.com/get-docker/)                        |
+### Development Tools
 
-> **Dev Container**: このリポジトリには Dev Container 設定が含まれており、
-> VS Code + Dev Containers 拡張機能を使えば上記ツールがすべてプリインストールされた環境を利用できます。
+| Tool          | Version                          | Installation                                                                 |
+| ------------- | -------------------------------- | ---------------------------------------------------------------------------- |
+| **Terraform** | >= 1.9, < 2.0                    | [Install Terraform](https://developer.hashicorp.com/terraform/install)       |
+| **Azure CLI** | Latest                           | [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) |
+| **Python**    | >= 3.12                          | [python.org](https://www.python.org/)                                        |
+| **uv**        | Latest                           | [Install uv](https://docs.astral.sh/uv/getting-started/installation/)        |
+| **Node.js**   | >= 20                            | [nodejs.org](https://nodejs.org/)                                            |
+| **Docker**    | Latest (for Hosted Agent builds) | [Install Docker](https://docs.docker.com/get-docker/)                        |
+
+> **Dev Container**: This repository includes a Dev Container configuration.
+> Using VS Code with the Dev Containers extension provides an environment with all the above tools pre-installed.
 
 ---
 
-## 1. リポジトリのクローンと初期セットアップ
+## 1. Clone the Repository and Initial Setup
 
-### 方法 A: Dev Container / GitHub Codespaces（推奨）
+### Option A: Dev Container / GitHub Codespaces (Recommended)
 
-Dev Container を使うと、必要なツールがすべてプリインストールされ、`postCreateCommand` で Python 依存パッケージ (`uv sync`)、pre-commit hooks、Frontend 依存パッケージ (`npm install`) が自動インストールされます。このセクション (セクション 1) の手順は**すべてスキップ**してセクション 2 に進んでください。
+Using a Dev Container pre-installs all required tools, and `postCreateCommand` automatically installs Python dependencies (`uv sync`), pre-commit hooks, and Frontend dependencies (`npm install`). **Skip all steps in this section (section 1)** and proceed to section 2.
 
-- **GitHub Codespaces**: リポジトリページから「Code」→「Codespaces」で起動
-- **VS Code + Dev Container**: [Dev Containers 拡張機能](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) をインストールし、「Reopen in Container」で起動
+- **GitHub Codespaces**: Launch from the repository page via "Code" → "Codespaces"
+- **VS Code + Dev Container**: Install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) and select "Reopen in Container"
 
-### 方法 B: ローカル環境
+### Option B: Local Environment
 
 ```bash
 git clone https://github.com/<org>/microsoft-entra-agent-id.git
 cd microsoft-entra-agent-id
 ```
 
-#### Python 依存パッケージのインストール
+#### Install Python Dependencies
 
 ```bash
 uv sync
 ```
 
-これにより、`pyproject.toml` に定義されたすべての依存パッケージ (FastAPI, azure-identity, azure-ai-projects 等) と開発ツール (poethepoet, ruff) がインストールされます。
+This installs all dependencies defined in `pyproject.toml` (FastAPI, azure-identity, azure-ai-projects, etc.) along with development tools (poethepoet, ruff).
 
-#### Frontend 依存パッケージのインストール
+#### Install Frontend Dependencies
 
 ```bash
 cd src/frontend
@@ -70,74 +72,74 @@ cd ../..
 
 ---
 
-## 2. Azure インフラストラクチャのプロビジョニング
+## 2. Provision Azure Infrastructure
 
-### 2-1. Terraform 変数の設定
+### 2-1. Configure Terraform Variables
 
 ```bash
 cp src/infra/terraform.tfvars.example src/infra/terraform.tfvars
 ```
 
-`src/infra/terraform.tfvars` を編集します。以下の変数は **必ず設定** してください:
+Edit `src/infra/terraform.tfvars`. The following variables **must** be set:
 
-| 変数                            | 説明                               | 例                     |
-| ------------------------------- | ---------------------------------- | ---------------------- |
-| `tenant_id`                     | Entra ID テナント ID (GUID)        | `"xxxxxxxx-xxxx-..."`  |
-| `target_subscription_id`        | Azure サブスクリプション ID (GUID) | `"xxxxxxxx-xxxx-..."`  |
-| `location`                      | Azure リージョン                   | `"eastus2"`            |
-| `cognitive_project_name`        | Foundry Project 名                 | `"my-foundry-project"` |
-| `cognitive_project_description` | Foundry Project の説明             | `"Demo project"`       |
-| `cognitive_deployments`         | LLM モデルデプロイ定義             | (example 参照)         |
-| `container_apps`                | Container Apps 定義                | (example 参照)         |
+| Variable                        | Description                     | Example                |
+| ------------------------------- | ------------------------------- | ---------------------- |
+| `tenant_id`                     | Entra ID tenant ID (GUID)       | `"xxxxxxxx-xxxx-..."`  |
+| `target_subscription_id`        | Azure subscription ID (GUID)    | `"xxxxxxxx-xxxx-..."`  |
+| `location`                      | Azure region                    | `"eastus2"`            |
+| `cognitive_project_name`        | Foundry Project name            | `"my-foundry-project"` |
+| `cognitive_project_description` | Foundry Project description     | `"Demo project"`       |
+| `cognitive_deployments`         | LLM model deployment definition | (see example)          |
+| `container_apps`                | Container Apps definition       | (see example)          |
 
-その他の変数にはデフォルト値が設定されています。`.tfvars.example` のコメントを参照してください。
+Default values are provided for other variables. See the comments in `.tfvars.example`.
 
-> **リージョン**: Microsoft Foundry の Hosted Agent は利用可能なリージョンが限定されています。
-> `eastus2` や `swedencentral` など、Foundry Agent Service がサポートするリージョンを選択してください。
+> **Region**: The Hosted Agent in Microsoft Foundry is available in limited regions.
+> Choose a region that supports Foundry Agent Service, such as `eastus2` or `swedencentral`.
 
-### 2-2. Terraform の実行
+### 2-2. Run Terraform
 
 ```bash
 cd src/infra
 terraform init
-terraform plan    # リソース作成内容を確認
-terraform apply   # リソースをプロビジョニング
+terraform plan    # Review the resources to be created
+terraform apply   # Provision the resources
 cd ../..
 ```
 
-> **初回の `terraform apply`** では Container Apps (Backend API / Identity Echo API) のコンテナイメージも
-> ACR にビルド・プッシュされ、Container Apps へデプロイされます。
+> The **initial `terraform apply`** also builds and pushes Container Apps (Backend API / Identity Echo API)
+> container images to ACR and deploys them to Container Apps.
 
-Terraform は以下のリソースを作成します:
+Terraform creates the following resources:
 
-| リソース                             | 説明                                                                     |
-| ------------------------------------ | ------------------------------------------------------------------------ |
-| Resource Group                       | 全リソースのコンテナ                                                     |
-| Entra ID App Registration × 2        | SPA 用 (`demo-client-app`) と Resource API 用 (`demo-identity-echo-api`) |
-| Foundry Resource (Cognitive Account) | Microsoft Foundry のメインリソース (AIServices)                          |
-| Foundry Project                      | Foundry プロジェクト (Agent Identity 含む)                               |
-| Capability Host                      | Hosted Agent の実行環境                                                  |
-| Model Deployment                     | LLM モデル (例: gpt-4.1)                                                 |
-| Azure Container Registry             | Agent および API のコンテナイメージ                                      |
-| Container Apps Environment + Apps    | Backend API / Identity Echo API のホスティング                           |
-| Static Web App                       | Frontend SPA のホスティング                                              |
-| Log Analytics + Application Insights | 監視・ログ                                                               |
-| RBAC Role Assignments                | サービス間のアクセス権限                                                 |
+| Resource                             | Description                                                             |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| Resource Group                       | Container for all resources                                             |
+| Entra ID App Registration × 2        | For SPA (`demo-client-app`) and Resource API (`demo-identity-echo-api`) |
+| Foundry Resource (Cognitive Account) | Microsoft Foundry main resource (AIServices)                            |
+| Foundry Project                      | Foundry project (includes Agent Identity)                               |
+| Capability Host                      | Hosted Agent execution environment                                      |
+| Model Deployment                     | LLM model (e.g., gpt-4.1)                                               |
+| Azure Container Registry             | Container images for Agent and APIs                                     |
+| Container Apps Environment + Apps    | Hosting for Backend API / Identity Echo API                             |
+| Static Web App                       | Hosting for Frontend SPA                                                |
+| Log Analytics + Application Insights | Monitoring & logging                                                    |
+| RBAC Role Assignments                | Access permissions between services                                     |
 
 ---
 
-## 3. Graph API 操作用アプリの登録
+## 3. Register the App for Graph API Operations
 
-Entra Agent ID のセットアップスクリプト (セクション 5) は、Graph API の委任スコープ
-(`AgentIdentityBlueprint.ReadWrite.All` 等) を使って Blueprint や Agent Identity を構成します。
-これらのスコープを取得するための Public Client App Registration を Terraform で作成します。
+The Entra Agent ID setup scripts (section 5) use Graph API delegated scopes
+(`AgentIdentityBlueprint.ReadWrite.All`, etc.) to configure Blueprints and Agent Identities.
+A Public Client App Registration for acquiring these scopes is created via Terraform.
 
 ```bash
 cd labs/entra-agent-id/prereqs
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-`terraform.tfvars` を編集し、`tenant_id` を設定してください。
+Edit `terraform.tfvars` and set `tenant_id`.
 
 ```bash
 terraform init
@@ -146,330 +148,331 @@ terraform apply
 cd ../../..
 ```
 
-Apply 後に出力される `agent_id_manager_client_id` は、次のセクションで `.env` に設定します。
+The `agent_id_manager_client_id` output after apply will be used in `.env` in the next section.
 
 ---
 
-## 4. Terraform 出力を `.env` に同期
+## 4. Sync Terraform Outputs to `.env`
 
-Terraform の出力値を `src/.env` に自動同期します:
+Automatically sync Terraform output values to `src/.env`:
 
 ```bash
 cp src/.env.example src/.env
 python src/scripts/sync-infra-env.py
 ```
 
-`sync-infra-env.py` は `src/infra` の `terraform output` から約 15 の環境変数を読み取り、`src/.env` の該当行を上書きします。
-手動で値を埋める必要はありませんが、**`.env` ファイルが事前に存在する必要があります**。
-設定される変数の一覧は [環境変数リファレンス](#環境変数リファレンス) を参照してください。
+`sync-infra-env.py` runs `terraform output` from `src/infra`, reads approximately 15 environment variables, and overwrites the corresponding lines in `src/.env`.
+You don't need to fill in values manually, but the **`.env` file must exist beforehand**.
+See [Environment Variable Reference](#environment-variable-reference) for the full list.
 
-次に、セクション 3 で作成した Graph API 操作用アプリの Client ID を `.env` に設定します:
+Next, set the Client ID of the Graph API operations app created in section 3 in `.env`:
 
 ```bash
 GRAPH_API_OPS_CLIENT_ID=$(cd labs/entra-agent-id/prereqs && terraform output -raw agent_id_manager_client_id)
 sed -i "s|^GRAPH_API_OPS_CLIENT_ID=.*|GRAPH_API_OPS_CLIENT_ID=${GRAPH_API_OPS_CLIENT_ID}|" src/.env
 ```
 
-> **注意**: `src/.env` は `.gitignore` に含まれており、リポジトリにコミットされません。
+> **Note**: `src/.env` is included in `.gitignore` and will not be committed to the repository.
 
 ---
 
-## 5. Entra Agent ID のセットアップ
+## 5. Set Up Entra Agent ID
 
-Terraform で Foundry Project を作成すると、Agent Identity Blueprint と Agent Identity が自動的にプロビジョニングされます。
-ただし、各 OAuth フローを動作させるには以下の追加設定が必要です。
+When a Foundry Project is created via Terraform, the Agent Identity Blueprint and Agent Identity are automatically provisioned.
+However, the following additional configuration is required to make each OAuth flow work.
 
-> **OAuth フローの詳細**: 各フローのシーケンス図・プロトコル詳細・公式ドキュメントへのリンクは
-> [Agent Identity OAuth フロー比較](agent-identity-oauth-flow-comparison.md) を参照してください。
+> **OAuth flow details**: For sequence diagrams, protocol details, and links to official documentation for each flow, see
+> [Agent Identity OAuth Flow Comparison](agent-identity-oauth-flow-comparison.md).
 
-セットアップスクリプトは `src/agent/entra-agent-id/` にあり、すべて以下の共通仕様です:
+Setup scripts are located in `src/agent/entra-agent-id/` and share the following conventions:
 
-- MSAL 対話ブラウザログインで Graph API のトークンを取得 (ブラウザが自動で開きます)
-- `src/.env` から必要な環境変数を読み込み
-- べき等 — 既に設定済みならスキップ
-- `--delete` オプションで設定を元に戻せる
+- Acquire Graph API tokens via MSAL interactive browser login (a browser window opens automatically)
+- Read required environment variables from `src/.env`
+- Idempotent — skip if already configured
+- Use `--delete` option to revert settings
 
-### 5-1. Blueprint FIC の設定（全フロー共通・必須）
+### 5-1. Configure Blueprint FIC (Required for All Flows)
 
-Foundry Hosted Agent がトークンを取得するには、Blueprint が Foundry Project の Managed Identity (MSI) を
-信頼する必要があります。Federated Identity Credential (FIC) はその信頼関係を登録するものです。
+For the Foundry Hosted Agent to acquire tokens, the Blueprint must trust the Foundry Project's
+Managed Identity (MSI). A Federated Identity Credential (FIC) registers this trust relationship.
 
-FIC を登録すると、Hosted Agent は MSI の `client_assertion` を使い `client_credentials` グラントで
-Exchange Token (T1) を取得できるようになります。T1 は後続の OBO 交換・Autonomous トークン取得の起点です。
+Once the FIC is registered, the Hosted Agent can use the MSI's `client_assertion` to obtain
+an Exchange Token (T1) via the `client_credentials` grant. T1 serves as the starting point
+for subsequent OBO exchanges and Autonomous token acquisition.
 
 ```bash
 cd src/agent
 python entra-agent-id/set-blueprint-fic.py
 ```
 
-### 5-2. Interactive Agent (OBO) フロー用の設定
+### 5-2. Configuration for the Interactive Agent (OBO) Flow
 
-Interactive フローでは、ユーザーが SPA でログインし、Hosted Agent がユーザーの委任権限 (delegated) で
-Identity Echo API にアクセスします。
+In the Interactive flow, the user logs in to the SPA, and the Hosted Agent accesses
+the Identity Echo API with the user's delegated permissions.
 
-#### Blueprint スコープの設定
+#### Configure Blueprint Scopes
 
-SPA がユーザーに代わって Hosted Agent を呼び出すには、Blueprint が OAuth2 スコープを公開している必要があります。
-このスクリプトは Blueprint に App ID URI (`api://{blueprint-client-id}`) と `access_agent` スコープを設定します。
-SPA は `api://{blueprint}/access_agent` スコープを要求してユーザートークン (Tc) を取得します。
+For the SPA to call the Hosted Agent on behalf of the user, the Blueprint must expose OAuth2 scopes.
+This script sets up an App ID URI (`api://{blueprint-client-id}`) and the `access_agent` scope on the Blueprint.
+The SPA requests the `api://{blueprint}/access_agent` scope to obtain the user token (Tc).
 
 ```bash
 python entra-agent-id/set-blueprint-scope.py
 ```
 
-#### Agent Identity への Admin Consent 付与
+#### Grant Admin Consent to Agent Identity
 
-OBO 交換で Agent Identity がユーザーの代理として Identity Echo API にアクセスするには、
-テナント管理者の事前同意 (Admin Consent) が必要です。
-このスクリプトは `consentType: AllPrincipals` で OAuth2 Permission Grant を作成し、
-テナント内の**すべてのユーザー**に対する代理アクセスを許可します。
+For the Agent Identity to access the Identity Echo API on behalf of the user via OBO exchange,
+tenant administrator pre-consent (Admin Consent) is required.
+This script creates an OAuth2 Permission Grant with `consentType: AllPrincipals`,
+allowing delegated access on behalf of **all users** in the tenant.
 
 ```bash
 python entra-agent-id/grant-admin-consent-to-agent-identity.py
 ```
 
-### 5-3. Autonomous Agent (App) フロー用の設定
+### 5-3. Configuration for the Autonomous Agent (App) Flow
 
-Autonomous Agent App フローでは、ユーザーの介在なしに Agent Identity 自身の権限（application permissions）で
-Identity Echo API にアクセスします。
+In the Autonomous Agent App flow, the Agent Identity accesses the Identity Echo API
+with its own application permissions, without any user involvement.
 
-このスクリプトは Identity Echo API の `CallerIdentity.Read.All` App Role を
-Agent Identity の Service Principal に付与します。
-これにより Agent Identity は `client_credentials` で取得した app-only トークンで API を呼び出せます。
+This script grants the `CallerIdentity.Read.All` App Role of the Identity Echo API
+to the Agent Identity's Service Principal.
+This allows the Agent Identity to call the API with an app-only token obtained via `client_credentials`.
 
 ```bash
 python entra-agent-id/grant-approle-to-agent-identity.py
 ```
 
-### 5-4. Autonomous Agent (User) フロー用の設定
+### 5-4. Configuration for the Autonomous Agent (User) Flow
 
-Autonomous Agent User フローでは、Agent Identity が Agent User を代理 (impersonate) し、
-そのユーザーの delegated 権限で Identity Echo API にアクセスします。
+In the Autonomous Agent User flow, the Agent Identity impersonates an Agent User
+and accesses the Identity Echo API with that user's delegated permissions.
 
-#### Agent User の作成
+#### Create the Agent User
 
-Agent User は `microsoft.graph.agentUser` という特殊なユーザータイプで、
-通常の Entra ID ユーザーとは異なり、特定の Agent Identity にのみ impersonate を許可されます。
-事前に `src/.env` で以下を手動設定してください:
+An Agent User is a special user type called `microsoft.graph.agentUser`.
+Unlike regular Entra ID users, only a specific Agent Identity is allowed to impersonate it.
+Manually set the following in `src/.env` beforehand:
 
-| 変数                               | 説明                | 例                                |
-| ---------------------------------- | ------------------- | --------------------------------- |
-| `ENTRA_AGENT_ID_USER_UPN`          | Agent User の UPN   | `"agent@contoso.onmicrosoft.com"` |
-| `ENTRA_AGENT_ID_USER_DISPLAY_NAME` | Agent User の表示名 | `"Demo Agent User"`               |
+| Variable                           | Description             | Example                           |
+| ---------------------------------- | ----------------------- | --------------------------------- |
+| `ENTRA_AGENT_ID_USER_UPN`          | Agent User UPN          | `"agent@contoso.onmicrosoft.com"` |
+| `ENTRA_AGENT_ID_USER_DISPLAY_NAME` | Agent User display name | `"Demo Agent User"`               |
 
 ```bash
 python entra-agent-id/create-agent-user.py
 ```
 
-#### Agent Identity への Delegated Consent 付与
+#### Grant Delegated Consent to Agent Identity
 
-Agent Identity が Agent User の代理で Identity Echo API にアクセスするには、
-その Agent User に対する delegated OAuth2 の事前同意が必要です。
-このスクリプトは `consentType: Principal` で OAuth2 Permission Grant を作成し、
-特定の Agent User に限定した代理アクセスを許可します。
+For the Agent Identity to access the Identity Echo API on behalf of the Agent User,
+delegated OAuth2 pre-consent for that Agent User is required.
+This script creates an OAuth2 Permission Grant with `consentType: Principal`,
+allowing delegated access limited to a specific Agent User.
 
 ```bash
 python entra-agent-id/grant-consent-to-agent-identity.py
 ```
 
-### 5-5. 設定の確認（オプション）
+### 5-5. Verify Configuration (Optional)
 
-Blueprint の構成を確認する読み取り専用のスクリプトです。
-App ID URI、公開スコープ、FIC、Service Principal の詳細をダンプします:
+A read-only script to inspect the Blueprint configuration.
+It dumps the App ID URI, exposed scopes, FIC, and Service Principal details:
 
 ```bash
 python entra-agent-id/inspect-blueprint.py
 ```
 
-### スクリプト一覧
+### Script Summary
 
-| スクリプト                                 | 対象フロー            | 説明                                     |
-| ------------------------------------------ | --------------------- | ---------------------------------------- |
-| `set-blueprint-fic.py`                     | 全フロー共通          | Blueprint に FIC を登録                  |
-| `set-blueprint-scope.py`                   | Interactive           | Blueprint に App ID URI + スコープを公開 |
-| `grant-admin-consent-to-agent-identity.py` | Interactive           | Admin Consent (AllPrincipals) を付与     |
-| `grant-approle-to-agent-identity.py`       | Autonomous Agent App  | App Role を Agent Identity SP に付与     |
-| `create-agent-user.py`                     | Autonomous Agent User | Agent User を作成                        |
-| `grant-consent-to-agent-identity.py`       | Autonomous Agent User | Delegated Consent (Principal) を付与     |
-| `inspect-blueprint.py`                     | (確認用)              | Blueprint の設定をダンプ                 |
+| Script                                     | Target Flow           | Description                                |
+| ------------------------------------------ | --------------------- | ------------------------------------------ |
+| `set-blueprint-fic.py`                     | All flows             | Register FIC on the Blueprint              |
+| `set-blueprint-scope.py`                   | Interactive           | Expose App ID URI + scope on the Blueprint |
+| `grant-admin-consent-to-agent-identity.py` | Interactive           | Grant Admin Consent (AllPrincipals)        |
+| `grant-approle-to-agent-identity.py`       | Autonomous Agent App  | Grant App Role to Agent Identity SP        |
+| `create-agent-user.py`                     | Autonomous Agent User | Create the Agent User                      |
+| `grant-consent-to-agent-identity.py`       | Autonomous Agent User | Grant Delegated Consent (Principal)        |
+| `inspect-blueprint.py`                     | (Inspection)          | Dump Blueprint configuration               |
 
 ---
 
-## 6. Hosted Agent をデプロイ
+## 6. Deploy the Hosted Agent
 
 ```bash
 cd src/agent
 python scripts/deploy-agent.py build push deploy --start --wait
 ```
 
-これは以下のステップを自動実行します:
+This automatically performs the following steps:
 
-1. Docker イメージのビルド (`linux/amd64`)
-2. ACR へのプッシュ
-3. Foundry Agent Version の作成
-4. Agent の起動と起動完了の待機
+1. Build the Docker image (`linux/amd64`)
+2. Push to ACR
+3. Create the Foundry Agent Version
+4. Start the Agent and wait for startup to complete
 
-### 動作確認
+### Verification
 
-#### Autonomous Agent (App) フロー
+#### Autonomous Agent (App) Flow
 
-ユーザーの介在なしに、Agent Identity 自身の権限 (app-only) で Identity Echo API を呼び出します:
+Calls the Identity Echo API with the Agent Identity's own permissions (app-only) without user involvement:
 
 ```bash
 python scripts/invoke-agent.py --tool call_resource_api_autonomous_app
 ```
 
-#### Autonomous Agent (User) フロー
+#### Autonomous Agent (User) Flow
 
-Agent Identity が Agent User を代理し、delegated 権限で Identity Echo API を呼び出します:
+The Agent Identity impersonates the Agent User and calls the Identity Echo API with delegated permissions:
 
 ```bash
 python scripts/invoke-agent.py --tool call_resource_api_autonomous_user
 ```
 
-#### Interactive Agent (OBO) フロー
+#### Interactive Agent (OBO) Flow
 
-ブラウザが開き MSAL 対話ログインを行った後、ユーザーの委任権限で Identity Echo API を呼び出します:
+Opens a browser for MSAL interactive login, then calls the Identity Echo API with the user's delegated permissions:
 
 ```bash
 python scripts/invoke-interactive-agent.py
 ```
 
-> `invoke-agent.py` はデフォルトで LLM にツール選択を任せます。
-> `--tool` オプションで特定フローを指定できます。
+> `invoke-agent.py` lets the LLM choose the tool by default.
+> Use the `--tool` option to specify a particular flow.
 
 ---
 
-## 7. Frontend SPA をデプロイ
+## 7. Deploy the Frontend SPA
 
 ```bash
 python src/frontend/scripts/deploy-swa.py
 ```
 
-このスクリプトは以下を自動実行します:
+This script automatically performs:
 
-1. `src/.env` からクラウド用の環境変数を読み取り
-2. `npm run build` で Vite ビルド (環境変数をバンドルに埋め込み)
-3. ビルド成果物を Azure Static Web Apps にデプロイ
+1. Reads cloud environment variables from `src/.env`
+2. Runs `npm run build` for the Vite build (embeds environment variables into the bundle)
+3. Deploys the build artifacts to Azure Static Web Apps
 
-> デプロイトークンは `terraform output -raw swa_deployment_token` から自動取得されます。
+> The deployment token is automatically retrieved from `terraform output -raw swa_deployment_token`.
 
 ---
 
-## ローカル開発サーバーの起動
+## Local Development Server
 
-クラウドにデプロイ済みの API を使わず、ローカルで開発・デバッグする場合のサーバー起動手順です。
+Instructions for starting local servers when developing and debugging without using the cloud-deployed APIs.
 
 ### Identity Echo API
 
-> **注意**: ローカルで起動した API サーバーは、Azure 上の Hosted Agent からはアクセスできません。
-> Hosted Agent は Container Apps にデプロイされた Identity Echo API を呼び出すため、ローカルサーバーは
-> API 単体の開発・デバッグや、SPA からの直接呼び出し (No Agent Flow) のテストに限定されます。
+> **Note**: A locally running API server is not accessible from the Hosted Agent on Azure.
+> The Hosted Agent calls the Identity Echo API deployed to Container Apps, so the local server
+> is limited to standalone API development/debugging and testing direct calls from the SPA (No Agent Flow).
 
 ```bash
 cd src && uvicorn identity_echo_api.main:app --reload --port 8000
 ```
 
-`http://localhost:8000` で起動します。ヘルスチェック:
+Starts on `http://localhost:8000`. Health check:
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-> **`.env` の変更が必要**: `sync-infra-env.py` 実行後は API の URL が Container Apps を指しています。
-> ローカルの API を SPA から呼び出すには、`src/.env` で以下の変数を変更してください:
+> **`.env` change required**: After running `sync-infra-env.py`, API URLs point to Container Apps.
+> To call the local API from the SPA, change the following variable in `src/.env`:
 >
 > ```text
 > RESOURCE_API_URL=http://localhost:8000
 > ```
 >
-> クラウドの API に戻す場合は `python src/scripts/sync-infra-env.py` を再実行してください。
+> To switch back to the cloud API, re-run `python src/scripts/sync-infra-env.py`.
 
-### Backend API (Autonomous Flow 使用時)
+### Backend API (When Using Autonomous Flow)
 
-Autonomous Agent フローを使う場合は、Backend API をローカルで起動して実行することができます:
+When using the Autonomous Agent flow, you can run and test the Backend API locally:
 
 ```bash
 cd src && uvicorn backend_api.main:app --reload --port 8080
 ```
 
-> **`.env` の変更が必要**: `sync-infra-env.py` 実行後は API の URL が Container Apps を指しています。
-> ローカルの API を SPA から呼び出すには、`src/.env` で以下の変数を変更してください:
+> **`.env` change required**: After running `sync-infra-env.py`, API URLs point to Container Apps.
+> To call the local API from the SPA, change the following variable in `src/.env`:
 >
 > ```text
 > BACKEND_API_URL=http://localhost:8080
 > ```
 >
-> クラウドの API に戻す場合は `python src/scripts/sync-infra-env.py` を再実行してください。
+> To switch back to the cloud API, re-run `python src/scripts/sync-infra-env.py`.
 
 ### Frontend SPA
 
-別のターミナルで:
+In a separate terminal:
 
 ```bash
 cd src/frontend && npm run dev
 ```
 
-`http://localhost:5173` で Vite 開発サーバーが起動します。
-ブラウザでアクセスすると、MSAL.js を使った Entra ID ログイン画面が表示されます。
+The Vite dev server starts on `http://localhost:5173`.
+Open it in a browser to see the Entra ID login screen via MSAL.js.
 
 ---
 
-## 利用可能な Poe タスク一覧
+## Available Poe Tasks
 
-[Poe the Poet](https://poethepoet.naber.io/) タスクランナーで主要な操作を実行できます:
+You can run common operations using the [Poe the Poet](https://poethepoet.naber.io/) task runner:
 
-| コマンド              | 説明                                    |
-| --------------------- | --------------------------------------- |
-| `poe check`           | 全コンポーネントのリント・フォーマット  |
-| `poe lint-backend`    | Python リント (Ruff)                    |
-| `poe format-backend`  | Python フォーマット (Ruff)              |
-| `poe lint-frontend`   | Frontend リント (ESLint)                |
-| `poe format-frontend` | Frontend フォーマット (Prettier)        |
-| `poe lint-infra`      | Terraform リント (TFLint)               |
-| `poe format-infra`    | Terraform フォーマット                  |
-| `poe setup`           | 開発環境セットアップ (pre-commit hooks) |
-
----
-
-## 環境変数リファレンス
-
-`src/.env` に設定される環境変数の一覧です。
-ほとんどの値は `sync-infra-env.py` によって自動設定されます。
-
-| 変数名                                       | 説明                                                    | 自動設定 |
-| -------------------------------------------- | ------------------------------------------------------- | -------- |
-| `AZURE_RESOURCE_GROUP`                       | Azure リソースグループ名                                | 手動     |
-| `AZURE_SUBSCRIPTION_ID`                      | Azure サブスクリプション ID                             | 手動     |
-| `AZURE_LOCATION`                             | Azure リージョン                                        | 手動     |
-| `ENTRA_TENANT_ID`                            | Entra ID テナント ID                                    | ✅       |
-| `FRONTEND_SPA_APP_URL`                       | SPA のデプロイ先 URL                                    | ✅       |
-| `ENTRA_SPA_APP_CLIENT_ID`                    | SPA アプリの Client ID                                  | ✅       |
-| `RESOURCE_API_URL`                           | Identity Echo API の URL                                | ✅       |
-| `ENTRA_RESOURCE_API_CLIENT_ID`               | Identity Echo API の Client ID                          | ✅       |
-| `ENTRA_RESOURCE_API_SCOPE`                   | Identity Echo API の delegated scope                    | ✅       |
-| `ENTRA_RESOURCE_API_DEFAULT_SCOPE`           | Identity Echo API の `.default` scope                   | ✅       |
-| `BACKEND_API_URL`                            | Backend API の URL                                      | ✅       |
-| `ENTRA_BACKEND_API_FOUNDRY_ACCESS_CLIENT_ID` | Backend API の UAMI Client ID                           | ✅       |
-| `FOUNDRY_PROJECT_ENDPOINT`                   | Foundry Project エンドポイント                          | ✅       |
-| `FOUNDRY_MODEL_DEPLOYMENT_NAME`              | LLM モデルデプロイ名                                    | ✅       |
-| `FOUNDRY_PROJECT_MSI`                        | Foundry Project の MSI Principal ID                     | ✅       |
-| `FOUNDRY_AGENT_ACR_LOGIN_SERVER`             | ACR ログインサーバー                                    | ✅       |
-| `ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID`   | Blueprint の Client ID                                  | ✅       |
-| `ENTRA_AGENT_IDENTITY_CLIENT_ID`             | Agent Identity の Client ID                             | ✅       |
-| `ENTRA_AGENT_ID_USER_UPN`                    | Agent User の UPN (Autonomous Agent User Flow)          | 手動     |
-| `ENTRA_AGENT_ID_USER_DISPLAY_NAME`           | Agent User の表示名                                     | 手動     |
-| `GRAPH_API_OPS_CLIENT_ID`                    | Graph API 操作用 Public Client ID (Entra Agent ID 設定) | ✅ \*    |
-
-> \* `GRAPH_API_OPS_CLIENT_ID` は `labs/entra-agent-id/prereqs/` の Terraform 出力から取得します (セクション 3・4 参照)。
+| Command               | Description                              |
+| --------------------- | ---------------------------------------- |
+| `poe check`           | Lint & format all components             |
+| `poe lint-backend`    | Python lint (Ruff)                       |
+| `poe format-backend`  | Python format (Ruff)                     |
+| `poe lint-frontend`   | Frontend lint (ESLint)                   |
+| `poe format-frontend` | Frontend format (Prettier)               |
+| `poe lint-infra`      | Terraform lint (TFLint)                  |
+| `poe format-infra`    | Terraform format                         |
+| `poe setup`           | Dev environment setup (pre-commit hooks) |
 
 ---
 
-## トラブルシューティング
+## Environment Variable Reference
 
-### Terraform apply 時のエラー
+A list of environment variables set in `src/.env`.
+Most values are automatically populated by `sync-infra-env.py`.
 
-**`Cognitive Account` が既に Soft-Delete 状態で存在する**:
+| Variable Name                                | Description                                                  | Auto-set |
+| -------------------------------------------- | ------------------------------------------------------------ | -------- |
+| `AZURE_RESOURCE_GROUP`                       | Azure resource group name                                    | Manual   |
+| `AZURE_SUBSCRIPTION_ID`                      | Azure subscription ID                                        | Manual   |
+| `AZURE_LOCATION`                             | Azure region                                                 | Manual   |
+| `ENTRA_TENANT_ID`                            | Entra ID tenant ID                                           | Yes      |
+| `FRONTEND_SPA_APP_URL`                       | SPA deployment URL                                           | Yes      |
+| `ENTRA_SPA_APP_CLIENT_ID`                    | SPA app Client ID                                            | Yes      |
+| `RESOURCE_API_URL`                           | Identity Echo API URL                                        | Yes      |
+| `ENTRA_RESOURCE_API_CLIENT_ID`               | Identity Echo API Client ID                                  | Yes      |
+| `ENTRA_RESOURCE_API_SCOPE`                   | Identity Echo API delegated scope                            | Yes      |
+| `ENTRA_RESOURCE_API_DEFAULT_SCOPE`           | Identity Echo API `.default` scope                           | Yes      |
+| `BACKEND_API_URL`                            | Backend API URL                                              | Yes      |
+| `ENTRA_BACKEND_API_FOUNDRY_ACCESS_CLIENT_ID` | Backend API UAMI Client ID                                   | Yes      |
+| `FOUNDRY_PROJECT_ENDPOINT`                   | Foundry Project endpoint                                     | Yes      |
+| `FOUNDRY_MODEL_DEPLOYMENT_NAME`              | LLM model deployment name                                    | Yes      |
+| `FOUNDRY_PROJECT_MSI`                        | Foundry Project MSI Principal ID                             | Yes      |
+| `FOUNDRY_AGENT_ACR_LOGIN_SERVER`             | ACR login server                                             | Yes      |
+| `ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID`   | Blueprint Client ID                                          | Yes      |
+| `ENTRA_AGENT_IDENTITY_CLIENT_ID`             | Agent Identity Client ID                                     | Yes      |
+| `ENTRA_AGENT_ID_USER_UPN`                    | Agent User UPN (for Autonomous Agent User Flow)              | Manual   |
+| `ENTRA_AGENT_ID_USER_DISPLAY_NAME`           | Agent User display name                                      | Manual   |
+| `GRAPH_API_OPS_CLIENT_ID`                    | Graph API operations Public Client ID (Entra Agent ID setup) | Yes \*   |
+
+> \* `GRAPH_API_OPS_CLIENT_ID` is obtained from the Terraform output of `labs/entra-agent-id/prereqs/` (see sections 3 & 4).
+
+---
+
+## Troubleshooting
+
+### Terraform Apply Errors
+
+**`Cognitive Account` already exists in Soft-Delete state**:
 
 ```bash
 az cognitiveservices account purge \
@@ -478,23 +481,23 @@ az cognitiveservices account purge \
   --location <location>
 ```
 
-**権限不足で App Registration が作成できない**:
-Entra ID で `Application.ReadWrite.All` ディレクトリ権限を持つアカウントで `az login` してください。
+**Insufficient permissions to create App Registration**:
+Run `az login` with an account that has the `Application.ReadWrite.All` directory permission in Entra ID.
 
-### ローカル起動時のエラー
+### Local Startup Errors
 
-**CORS エラーが発生する**:
-`src/.env` の `RESOURCE_API_URL` が `http://localhost:8000` になっていることを確認してください。
-Vite 開発サーバーは `src/.env` から環境変数を読み込みます。
+**CORS errors occur**:
+Verify that `RESOURCE_API_URL` in `src/.env` is set to `http://localhost:8000`.
+The Vite dev server reads environment variables from `src/.env`.
 
-**MSAL ログインがリダイレクトされない**:
-SPA の App Registration の Redirect URI に `http://localhost:5173` が含まれていることを確認してください。
-Terraform のデフォルト設定では自動的に含まれます。
+**MSAL login does not redirect**:
+Verify that the SPA App Registration's Redirect URI includes `http://localhost:5173`.
+This is automatically included in the default Terraform configuration.
 
 ---
 
-## 次のステップ
+## Next Steps
 
-- [再デプロイ・運用リファレンス](deployment.md)
-- [アーキテクチャ詳細](architecture.md)
-- [Entra Agent ID 概要](entra-agent-id-overview.md)
+- [Deployment Guide](deployment.md)
+- [Architecture Details](architecture.md)
+- [Entra Agent ID Overview](entra-agent-id-overview.md)

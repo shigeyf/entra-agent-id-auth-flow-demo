@@ -1,147 +1,149 @@
-# Entra Agent ID 概要
+# Entra Agent ID Overview
 
-Entra Agent ID は、AI エージェントに **独自の Entra ID アイデンティティ** を付与する仕組みです。
-エージェントが「誰として」リソースにアクセスしたかを明確にし、監査・ガバナンスを可能にします。
+[English](./entra-agent-id-overview.md) | [日本語](./entra-agent-id-overview.ja.md)
 
-> プロトコルの詳細 (シーケンス図・トークンパラメータ) は
-> [Agent Identity OAuth フロー比較](agent-identity-oauth-flow-comparison.md) を参照してください。
+Entra Agent ID is a mechanism that grants AI agents their **own Entra ID identity**.
+It clarifies "who" the agent accessed resources as, enabling auditing and governance.
 
----
-
-## なぜ Agent ID が必要か
-
-従来の方法では、エージェントは **アプリ登録の Client Secret** や **Managed Identity** でリソースにアクセスしていました。
-この場合、「どのエージェントがアクセスしたか」の識別が困難です:
-
-| 従来の方法                 | 問題                                               |
-| -------------------------- | -------------------------------------------------- |
-| 共有 Client Secret         | 複数エージェントが同じ ID でアクセス、監査不能     |
-| Managed Identity           | インフラ単位の ID であり、エージェント単位ではない |
-| ユーザーの委任トークンのみ | エージェント自体の行動が追跡できない               |
-
-Entra Agent ID は、エージェントごとに **固有のサービスプリンシパル** を発行し、
-Entra ID の監査ログ・条件付きアクセスの対象にします。
+> For protocol details (sequence diagrams and token parameters), see
+> [Agent Identity OAuth Flow Comparison](agent-identity-oauth-flow-comparison.md).
 
 ---
 
-## エンティティ階層
+## Why Agent ID Is Needed
 
-Entra Agent ID は以下の 3 層構造で管理されます:
+Traditionally, agents accessed resources using **App Registration Client Secrets** or **Managed Identities**.
+This makes it difficult to identify "which agent accessed what":
 
-```text
-Agent Identity Blueprint (親)
-├── Agent Identity A (子)
-│   └── Agent User X   ← Autonomous Agent User Flow で使用
-├── Agent Identity B (子)
-└── Agent Identity C (子)
-```
+| Traditional Approach       | Problem                                                |
+| -------------------------- | ------------------------------------------------------ |
+| Shared Client Secret       | Multiple agents access under the same ID — unauditable |
+| Managed Identity           | Identity is per infrastructure, not per agent          |
+| User delegated tokens only | The agent's own actions cannot be tracked              |
 
-### 各エンティティの役割
-
-| エンティティ                 | 概要                                                               | Entra ID での実体                 |
-| ---------------------------- | ------------------------------------------------------------------ | --------------------------------- |
-| **Agent Identity Blueprint** | エージェントのガバナンス単位。credential (FIC) を保持              | App Registration                  |
-| **Agent Identity**           | 個々のエージェントインスタンスの ID。Blueprint が impersonate する | Service Principal                 |
-| **Agent User**               | エージェントが impersonate するユーザーコンテキスト                | Service Principal (user 属性付き) |
-
-- Blueprint : Agent Identity = **1 : N** (1 つの Blueprint で複数の Agent Identity を管理)
-- Agent Identity : Blueprint = **N : 1** (各 Agent Identity は 1 つの Blueprint にのみ所属)
-- Agent Identity : Agent User = **1 : N** (Autonomous Agent User Flow でのみ使用)
-
-### この Demo App での対応
-
-| エンティティ         | 作成方法                                          |
-| -------------------- | ------------------------------------------------- |
-| Blueprint            | Foundry Project 作成時に自動生成                  |
-| Agent Identity       | Foundry Project 作成時に自動生成                  |
-| Agent User           | `labs/entra-agent-id/scripts/` のスクリプトで作成 |
-| Federated Credential | `labs/entra-agent-id/scripts/` のスクリプトで設定 |
+Entra Agent ID issues a **unique service principal** per agent,
+making each agent a target of Entra ID audit logs and conditional access policies.
 
 ---
 
-## 3 つの OAuth フロー
+## Entity Hierarchy
 
-Entra Agent ID は用途に応じて 3 つのフローを提供します:
-
-### 1. Interactive (ユーザー委任型)
+Entra Agent ID is managed in a three-tier structure:
 
 ```text
-ユーザー → SPA → Backend API → Entra ID (OBO) → Resource API
+Agent Identity Blueprint (parent)
+├── Agent Identity A (child)
+│   └── Agent User X   ← Used in Autonomous Agent User Flow
+├── Agent Identity B (child)
+└── Agent Identity C (child)
 ```
 
-- ユーザーが SPA にログインし、エージェントを呼び出す
-- エージェントは **ユーザーの delegated 権限** でリソースにアクセス
-- 最終トークン: **delegated** (ユーザーの同意に基づくスコープ)
-- トークン取得: T1 (exchange) + Tc (ユーザートークン) → OBO → TR
+### Role of Each Entity
 
-### 2. Autonomous Agent App (アプリ権限型)
+| Entity                       | Description                                                             | Entra ID Representation                  |
+| ---------------------------- | ----------------------------------------------------------------------- | ---------------------------------------- |
+| **Agent Identity Blueprint** | Governance unit for agents. Holds credentials (FIC)                     | App Registration                         |
+| **Agent Identity**           | Identity of an individual agent instance. Impersonated by the Blueprint | Service Principal                        |
+| **Agent User**               | User context that the agent impersonates                                | Service Principal (with user attributes) |
+
+- Blueprint : Agent Identity = **1 : N** (one Blueprint manages multiple Agent Identities)
+- Agent Identity : Blueprint = **N : 1** (each Agent Identity belongs to exactly one Blueprint)
+- Agent Identity : Agent User = **1 : N** (used only in Autonomous Agent User Flow)
+
+### Correspondence in This Demo App
+
+| Entity               | How It's Created                                         |
+| -------------------- | -------------------------------------------------------- |
+| Blueprint            | Auto-generated when the Foundry Project is created       |
+| Agent Identity       | Auto-generated when the Foundry Project is created       |
+| Agent User           | Created via scripts in `labs/entra-agent-id/scripts/`    |
+| Federated Credential | Configured via scripts in `labs/entra-agent-id/scripts/` |
+
+---
+
+## Three OAuth Flows
+
+Entra Agent ID provides three flows depending on the use case:
+
+### 1. Interactive (User-Delegated)
 
 ```text
-スケジューラ → Agent → Entra ID → Resource API
+User → SPA → Backend API → Entra ID (OBO) → Resource API
 ```
 
-- ユーザーの介在なし
-- エージェントは **自身の application 権限** でリソースにアクセス
-- 最終トークン: **app-only** (管理者が事前に付与した権限)
-- トークン取得: 2 段階 — T1 (exchange) → TR
+- The user logs in to the SPA and invokes the agent
+- The agent accesses resources with the **user's delegated permissions**
+- Final token: **delegated** (scopes based on user consent)
+- Token acquisition: T1 (exchange) + Tc (user token) → OBO → TR
+
+### 2. Autonomous Agent App (Application Permissions)
+
+```text
+Scheduler → Agent → Entra ID → Resource API
+```
+
+- No user involvement
+- The agent accesses resources with its **own application permissions**
+- Final token: **app-only** (permissions pre-granted by an administrator)
+- Token acquisition: 2 steps — T1 (exchange) → TR
 
 ### 3. Autonomous Agent User (Agent User Impersonation)
 
 ```text
-スケジューラ → Agent → Entra ID (credential chaining) → Resource API
+Scheduler → Agent → Entra ID (credential chaining) → Resource API
 ```
 
-- ユーザーの介在なし、だが **Agent User のコンテキスト** を持つ
-- エージェントは **Agent User の delegated 権限** でリソースにアクセス
-- 最終トークン: **delegated** (Agent User のスコープ)
-- トークン取得: 3 段階 — T1 → T2 → OBO → TR
+- No user involvement, but the agent operates with an **Agent User context**
+- The agent accesses resources with the **Agent User's delegated permissions**
+- Final token: **delegated** (Agent User's scopes)
+- Token acquisition: 3 steps — T1 → T2 → OBO → TR
 
-### フロー比較
+### Flow Comparison
 
-| 観点                 | Interactive            | Autonomous Agent App   | Autonomous Agent User  |
-| -------------------- | ---------------------- | ---------------------- | ---------------------- |
-| **ユーザー介在**     | あり (ログイン + 同意) | なし                   | なし                   |
-| **最終トークン種別** | delegated              | app-only               | delegated              |
-| **権限の主体**       | 人間のユーザー         | Agent Identity 自体    | Agent User             |
-| **トークン段数**     | 3 (Tc + T1 → OBO → TR) | 2 (T1 → TR)            | 3 (T1 → T2 → OBO → TR) |
-| **主な用途**         | 対話型チャットボット   | バッチ処理・定期タスク | ユーザー代行の自動化   |
+| Aspect                 | Interactive            | Autonomous Agent App         | Autonomous Agent User     |
+| ---------------------- | ---------------------- | ---------------------------- | ------------------------- |
+| **User involvement**   | Yes (login + consent)  | None                         | None                      |
+| **Final token type**   | delegated              | app-only                     | delegated                 |
+| **Permission subject** | Human user             | Agent Identity itself        | Agent User                |
+| **Token steps**        | 3 (Tc + T1 → OBO → TR) | 2 (T1 → TR)                  | 3 (T1 → T2 → OBO → TR)    |
+| **Primary use case**   | Interactive chatbot    | Batch jobs & scheduled tasks | Automated user delegation |
 
 ---
 
 ## Credential: Federated Identity Credential (FIC)
 
-Blueprint が Entra ID からトークンを取得するには **Federated Identity Credential (FIC)** が必要です。
-FIC は「この Managed Identity からの assertion を信頼する」という設定です:
+A **Federated Identity Credential (FIC)** is required for the Blueprint to acquire tokens from Entra ID.
+An FIC is a configuration that says "trust assertions from this Managed Identity":
 
 ```text
 Blueprint (App Registration)
   └── Federated Credential
-        issuer: Managed Identity の OIDC issuer
-        subject: Managed Identity の Client ID
+        issuer: Managed Identity's OIDC issuer
+        subject: Managed Identity's Client ID
 ```
 
-- **本番環境**: Foundry Project の Managed Identity を issuer として設定
-- **ローカル開発**: Client Secret を使用 (FIC は不要だが非推奨)
+- **Production**: Configure the Foundry Project's Managed Identity as the issuer
+- **Local development**: Use a Client Secret (FIC not required, but not recommended)
 
-> FIC の設定手順は [Getting Started](getting-started.md) のセクション 5 を参照してください。
-
----
-
-## この Demo App で検証できること
-
-| UI タブ             | フロー               | 確認ポイント                                            |
-| ------------------- | -------------------- | ------------------------------------------------------- |
-| **Autonomous**      | Autonomous Agent App | Agent Identity の app-only トークンで API アクセス      |
-| **Interactive OBO** | Interactive          | ユーザーの delegated トークンで API アクセス (OBO 経由) |
-| **No Agent**        | (参照用)             | MSAL 直接取得のトークンとの差分比較                     |
-
-Identity Echo API は受け取ったトークンの `oid`・`azp`・`scp` を返すので、
-「誰の権限でアクセスしたか」を REST レスポンスとして可視化できます。
+> For FIC configuration steps, see section 5 of [Getting Started](getting-started.md).
 
 ---
 
-## 関連ドキュメント
+## What This Demo App Lets You Verify
 
-- [Agent Identity OAuth フロー比較](agent-identity-oauth-flow-comparison.md) — 各フローのシーケンス図・トークンパラメータの詳細
-- [Architecture](architecture.md) — システム全体の構成図
-- [Getting Started](getting-started.md) — セクション 5 で Entra Agent ID のセットアップ手順を説明
+| UI Tab              | Flow                 | What to Check                                     |
+| ------------------- | -------------------- | ------------------------------------------------- |
+| **Autonomous**      | Autonomous Agent App | API access with Agent Identity's app-only token   |
+| **Interactive OBO** | Interactive          | API access with user's delegated token (via OBO)  |
+| **No Agent**        | (Reference)          | Comparison with tokens acquired directly via MSAL |
+
+The Identity Echo API returns the `oid`, `azp`, and `scp` from the received token,
+allowing you to visualize "whose permissions were used for access" as a REST response.
+
+---
+
+## Related Documentation
+
+- [Agent Identity OAuth Flow Comparison](agent-identity-oauth-flow-comparison.md) — Sequence diagrams & token parameter details for each flow
+- [Architecture](architecture.md) — Overall system architecture diagram
+- [Getting Started](getting-started.md) — Section 5 covers the Entra Agent ID setup procedure
