@@ -107,20 +107,30 @@ Default values are provided for other variables. See the comments in `.tfvars.ex
 > **Region**: The Hosted Agent in Microsoft Foundry is available in limited regions.
 > Choose a region that supports Foundry Agent Service, such as `eastus2` or `swedencentral`.
 
-### 2-2. Run Terraform
+### 2-2. Run Terraform (Phase 1 — Foundry bootstrap)
+
+The full `terraform apply` is executed in **two phases**.
+The SPA App Registration (created in Phase 2) references the Blueprint's `access_agent` OAuth2 scope,
+which only exists after `set-blueprint-scope.py` runs in section 5. So in Phase 1 we provision the
+Foundry resources first (which auto-creates the Agent Identity Blueprint), then add the scope, then
+run the final apply in section 6.
 
 ```bash
 cd src/infra
 terraform init
-terraform plan    # Review the resources to be created
-terraform apply   # Provision the resources
+terraform plan
+# Phase 1: provision Foundry Resource / Project / Capability Host / Model Deployment.
+# This implicitly creates the Agent Identity Blueprint via the seed-agent step.
+terraform apply -target=terraform_data.seed_agent
 cd ../..
 ```
 
-> The **initial `terraform apply`** also builds and pushes Container Apps (Backend API / Identity Echo API)
-> container images to ACR and deploys them to Container Apps.
+> **Why `-target`?** The SPA App Registration (`azuread_application.client_spa`) reads the Blueprint's
+> `access_agent` scope at plan time. Until the scope is added by `set-blueprint-scope.py` (section 5),
+> the apply fails with `Invalid index` on an empty list. Targeting the seed agent stops Phase 1 just
+> after the Blueprint is provisioned.
 
-Terraform creates the following resources:
+Terraform creates the following resources across both phases:
 
 | Resource                             | Description                                                             |
 | ------------------------------------ | ----------------------------------------------------------------------- |
@@ -140,7 +150,7 @@ Terraform creates the following resources:
 
 ## 3. Register the App for Graph API Operations
 
-The Entra Agent ID setup scripts (section 5) use Graph API delegated scopes
+The Entra Agent ID setup scripts (sections 5 and 7) use Graph API delegated scopes
 (`AgentIdentityBlueprint.ReadWrite.All`, etc.) to configure Blueprints and Agent Identities.
 A Public Client App Registration for acquiring these scopes is created via Terraform.
 
@@ -171,25 +181,71 @@ cp src/.env.example src/.env
 python src/scripts/sync-infra-env.py
 ```
 
-`sync-infra-env.py` runs `terraform output` from `src/infra`, reads approximately 15 environment variables, and overwrites the corresponding lines in `src/.env`.
+`sync-infra-env.py` runs `terraform output` from both `src/infra` and `labs/entra-agent-id/prereqs`,
+reads approximately 16 environment variables (including `GRAPH_API_OPS_CLIENT_ID` from the prereqs app),
+and overwrites the corresponding lines in `src/.env`.
 You don't need to fill in values manually, but the **`.env` file must exist beforehand**.
 See [Environment Variable Reference](#environment-variable-reference) for the full list.
 
-Next, set the Client ID of the Graph API operations app created in section 3 in `.env`:
-
-```bash
-GRAPH_API_OPS_CLIENT_ID=$(cd labs/entra-agent-id/prereqs && terraform output -raw agent_id_manager_client_id)
-sed -i "s|^GRAPH_API_OPS_CLIENT_ID=.*|GRAPH_API_OPS_CLIENT_ID=${GRAPH_API_OPS_CLIENT_ID}|" src/.env
-```
-
+> **Note**: After Phase 1 some outputs (e.g. `ENTRA_SPA_APP_CLIENT_ID`, container app URLs) are not yet
+> populated and will be skipped — that is expected. They are filled in when you re-run this script after
+> Phase 2 (section 6).
+>
 > **Note**: `src/.env` is included in `.gitignore` and will not be committed to the repository.
 
 ---
 
-## 5. Set Up Entra Agent ID
+## 5. Configure Blueprint Scope (Required Before Phase 2 Apply)
 
-When a Foundry Project is created via Terraform, the Agent Identity Blueprint and Agent Identity are automatically provisioned.
-However, the following additional configuration is required to make each OAuth flow work.
+Before running the final Terraform apply, expose the `access_agent` OAuth2 scope on the
+Agent Identity Blueprint. The SPA App Registration created in Phase 2 references this scope,
+so it must exist beforehand.
+
+This script sets up an App ID URI (`api://{blueprint-client-id}`) and the `access_agent` scope
+on the Blueprint. The SPA later requests the `api://{blueprint}/access_agent` scope to obtain
+the user token (Tc) used in the Interactive (OBO) flow.
+
+```bash
+cd src/agent
+python entra-agent-id/set-blueprint-scope.py
+cd ../..
+```
+
+The script:
+
+- Acquires a Graph API token via MSAL interactive browser login (a browser window opens automatically)
+- Reads `ENTRA_AGENT_BLUEPRINT_IDENTITY_CLIENT_ID` and `GRAPH_API_OPS_CLIENT_ID` from `src/.env`
+- Is idempotent — skips if already configured
+- Supports `--delete` to revert
+
+---
+
+## 6. Run Terraform (Phase 2 — Remaining resources)
+
+Now that the Blueprint exposes the `access_agent` scope, the SPA App Registration and
+all remaining resources can be created.
+
+```bash
+cd src/infra
+terraform apply   # Provision the rest of the resources
+cd ../..
+```
+
+> The **initial Phase 2 apply** also builds and pushes Container Apps (Backend API / Identity Echo API)
+> container images to ACR and deploys them to Container Apps.
+
+Re-run the env sync to pick up the SPA Client ID and Container App URLs created in Phase 2:
+
+```bash
+python src/scripts/sync-infra-env.py
+```
+
+---
+
+## 7. Set Up Entra Agent ID
+
+The Foundry Project, Agent Identity Blueprint, and Agent Identity already exist (created in section 2).
+The remaining configuration enables each OAuth flow.
 
 > **OAuth flow details**: For sequence diagrams, protocol details, and links to official documentation for each flow, see
 > [Agent Identity OAuth Flow Comparison](agent-identity-oauth-flow-comparison.md).
@@ -201,7 +257,7 @@ Setup scripts are located in `src/agent/entra-agent-id/` and share the following
 - Idempotent — skip if already configured
 - Use `--delete` option to revert settings
 
-### 5-1. Configure Blueprint FIC (Required for All Flows)
+### 7-1. Configure Blueprint FIC (Required for All Flows)
 
 For the Foundry Hosted Agent to acquire tokens, the Blueprint must trust the Foundry Project's
 Managed Identity (MSI). A Federated Identity Credential (FIC) registers this trust relationship.
@@ -215,20 +271,13 @@ cd src/agent
 python entra-agent-id/set-blueprint-fic.py
 ```
 
-### 5-2. Configuration for the Interactive Agent (OBO) Flow
+### 7-2. Configuration for the Interactive Agent (OBO) Flow
 
 In the Interactive flow, the user logs in to the SPA, and the Hosted Agent accesses
 the Identity Echo API with the user's delegated permissions.
 
-#### Configure Blueprint Scopes
-
-For the SPA to call the Hosted Agent on behalf of the user, the Blueprint must expose OAuth2 scopes.
-This script sets up an App ID URI (`api://{blueprint-client-id}`) and the `access_agent` scope on the Blueprint.
-The SPA requests the `api://{blueprint}/access_agent` scope to obtain the user token (Tc).
-
-```bash
-python entra-agent-id/set-blueprint-scope.py
-```
+> **Note**: The Blueprint scope (`access_agent`) was already configured in section 5
+> as a prerequisite for the Phase 2 apply.
 
 #### Grant Admin Consent to Agent Identity
 
@@ -241,7 +290,7 @@ allowing delegated access on behalf of **all users** in the tenant.
 python entra-agent-id/grant-admin-consent-to-agent-identity.py
 ```
 
-### 5-3. Configuration for the Autonomous Agent (App) Flow
+### 7-3. Configuration for the Autonomous Agent (App) Flow
 
 In the Autonomous Agent App flow, the Agent Identity accesses the Identity Echo API
 with its own application permissions, without any user involvement.
@@ -254,7 +303,7 @@ This allows the Agent Identity to call the API with an app-only token obtained v
 python entra-agent-id/grant-approle-to-agent-identity.py
 ```
 
-### 5-4. Configuration for the Autonomous Agent (User) Flow
+### 7-4. Configuration for the Autonomous Agent (User) Flow
 
 In the Autonomous Agent User flow, the Agent Identity impersonates an Agent User
 and accesses the Identity Echo API with that user's delegated permissions.
@@ -285,7 +334,7 @@ allowing delegated access limited to a specific Agent User.
 python entra-agent-id/grant-consent-to-agent-identity.py
 ```
 
-### 5-5. Verify Configuration (Optional)
+### 7-5. Verify Configuration (Optional)
 
 A read-only script to inspect the Blueprint configuration.
 It dumps the App ID URI, exposed scopes, FIC, and Service Principal details:
@@ -296,19 +345,19 @@ python entra-agent-id/inspect-blueprint.py
 
 ### Script Summary
 
-| Script                                     | Target Flow           | Description                                |
-| ------------------------------------------ | --------------------- | ------------------------------------------ |
-| `set-blueprint-fic.py`                     | All flows             | Register FIC on the Blueprint              |
-| `set-blueprint-scope.py`                   | Interactive           | Expose App ID URI + scope on the Blueprint |
-| `grant-admin-consent-to-agent-identity.py` | Interactive           | Grant Admin Consent (AllPrincipals)        |
-| `grant-approle-to-agent-identity.py`       | Autonomous Agent App  | Grant App Role to Agent Identity SP        |
-| `create-agent-user.py`                     | Autonomous Agent User | Create the Agent User                      |
-| `grant-consent-to-agent-identity.py`       | Autonomous Agent User | Grant Delegated Consent (Principal)        |
-| `inspect-blueprint.py`                     | (Inspection)          | Dump Blueprint configuration               |
+| Script                                     | Target Flow           | Description                                                                          |
+| ------------------------------------------ | --------------------- | ------------------------------------------------------------------------------------ |
+| `set-blueprint-fic.py`                     | All flows             | Register FIC on the Blueprint                                                        |
+| `set-blueprint-scope.py`                   | All flows (prereq)    | Expose App ID URI + scope on the Blueprint (run before Phase 2 apply, see section 5) |
+| `grant-admin-consent-to-agent-identity.py` | Interactive           | Grant Admin Consent (AllPrincipals)                                                  |
+| `grant-approle-to-agent-identity.py`       | Autonomous Agent App  | Grant App Role to Agent Identity SP                                                  |
+| `create-agent-user.py`                     | Autonomous Agent User | Create the Agent User                                                                |
+| `grant-consent-to-agent-identity.py`       | Autonomous Agent User | Grant Delegated Consent (Principal)                                                  |
+| `inspect-blueprint.py`                     | (Inspection)          | Dump Blueprint configuration                                                         |
 
 ---
 
-## 6. Deploy the Hosted Agent
+## 8. Deploy the Hosted Agent
 
 ```bash
 cd src/agent
@@ -353,7 +402,7 @@ python scripts/invoke-interactive-agent.py
 
 ---
 
-## 7. Deploy the Frontend SPA
+## 9. Deploy the Frontend SPA
 
 ```bash
 python src/frontend/scripts/deploy-swa.py
